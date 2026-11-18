@@ -1,11 +1,14 @@
 // Lights on the Lot — Milestone 1
 import * as THREE from '../vendor/three.module.min.js';
 import { RGBELoader } from '../vendor/addons/RGBELoader.js';
+import { GLTFLoader } from '../vendor/addons/GLTFLoader.js';
 
 const SAVE_KEY = 'wm.lights-on-the-lot.v2';
 const SAVE_KEY_LEGACY = 'wm.lights-on-the-lot.v1';
 // Open street south of the gate, in the entrance lane, clear of parked cars and ride pads.
 const SAFE_SPAWN = { x: 0, z: 20.5, heading: -Math.PI / 2 };
+const VEHICLE_SCALE = 1.35; // 3D models need presence under the iso camera next to painted sprites
+
 const TRAILER_STAGING = { x: 7.2, z: 20.5, heading: -Math.PI / 2 };
 const $ = (id) => document.getElementById(id);
 
@@ -201,7 +204,8 @@ const input = {
 /* ---------- loading ---------- */
 const manager = new THREE.LoadingManager();
 const loader = new THREE.TextureLoader(manager);
-const assets = { tex: {}, spr: {}, ui: {} };
+const assets = { tex: {}, spr: {}, ui: {}, models: {} };
+const gltfLoader = new GLTFLoader(manager);
 const TEX_ANISO = 8;
 
 function loadTex(path, { srgb = true, repeat = 1, wrap = true } = {}) {
@@ -246,8 +250,6 @@ manager.onProgress = (url, loaded, total) => {
 
 /* ---------- painted isometric sprites ---------- */
 const SPR_FILES = [
-  'truck_se.png','truck_sw.png','truck_ne.png','truck_nw.png','truck_e.png',
-  'trailer_se.png','trailer_sw.png','trailer_n.png','trailer_ne.png','trailer_e.png','trailer_w.png',
   'ferris_00.png','ferris_01.png','ferris_night.png',
   'food_stand.png','food_stand_night.png','ring_booth.png','ring_booth_night.png','booth_close.png',
   'tree_oak.png','kiosk.png','car_blue.png','car_cream.png','string_lights.png',
@@ -271,8 +273,18 @@ function loadSpr(file) {
   assets.spr[file] = tex;
   return tex;
 }
+function loadModel(name, path) {
+  gltfLoader.load(path, (gltf) => { assets.models[name] = gltf.scene; }, undefined, (err) => {
+    console.error('GLB failed', name, path, err);
+  });
+}
+
 function preloadArt() {
   for (const f of SPR_FILES) loadSpr(f);
+  loadModel('truck', 'assets/models/truck.glb');
+  loadModel('trailer_ferris', 'assets/models/trailer_ferris.glb');
+  loadModel('trailer_food', 'assets/models/trailer_food.glb');
+  loadModel('trailer_booth', 'assets/models/trailer_booth.glb');
   const rgbe = new RGBELoader();
   const bakeWhenReady = (which, tex) => {
     assets[which] = tex;
@@ -836,10 +848,10 @@ function buildLot() {
   world.obstacles.push({ aabb: { x0: -7.6, x1: -5.4, z0: 12.3, z1: 14.1 } });
 
   // parked cars along the street — kept out of the entrance lane (x ≈ -6..8, z ≈ 16..24)
-  prop('car_blue.png', -17.4, 19.6, 1.85, { block: 1.3, sw: 1.5, sd: 1.1 });
-  prop('car_cream.png', 17.6, 19.8, 1.8, { block: 1.3, sw: 1.5, sd: 1.1 });
-  prop('car_blue.png', 17.2, 23.2, 1.75, { block: 1.2, sw: 1.4, sd: 1.0 });
-  prop('car_cream.png', -17.0, 23.4, 1.7, { block: 1.2, sw: 1.4, sd: 1.0 });
+  prop('car_blue.png', -22.0, 19.6, 1.85, { block: 1.3, sw: 1.5, sd: 1.1 });
+  prop('car_cream.png', 22.2, 19.8, 1.8, { block: 1.3, sw: 1.5, sd: 1.1 });
+  prop('car_blue.png', 22.0, 23.2, 1.75, { block: 1.2, sw: 1.4, sd: 1.0 });
+  prop('car_cream.png', -21.8, 23.4, 1.7, { block: 1.2, sw: 1.4, sd: 1.0 });
 
   // midway / ride-adjacent props
   prop('trash.png', 8.2, 5.4, 1.15, { block: 0.3 });
@@ -930,23 +942,84 @@ function makeWheel(radius, width, parent, x, y, z) {
   return g;
 }
 
+function instanceModel(src) {
+  if (!src) return new THREE.Group();
+  const root = src.clone(true);
+  root.traverse((o) => {
+    if (o.isMesh) {
+      o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone();
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+  return root;
+}
+
+function collectVehicleParts(root) {
+  const parts = { steers: [], wheels: [], heads: [], tails: [], revs: [], cabs: [], markers: [] };
+  root.traverse((o) => {
+    const n = o.name || '';
+    if (n.startsWith('steer_')) parts.steers.push(o);
+    if (n.startsWith('wheel_') && !n.includes('_hub') && o.isMesh) parts.wheels.push(o);
+    if (n.startsWith('light_head')) parts.heads.push(o);
+    if (n.startsWith('light_tail')) parts.tails.push(o);
+    if (n.startsWith('light_rev')) parts.revs.push(o);
+    if (n.startsWith('light_cab')) parts.cabs.push(o);
+    if (n.startsWith('light_marker')) parts.markers.push(o);
+  });
+  return parts;
+}
+
+function setLamp(objs, intensity) {
+  for (const o of objs) {
+    o.traverse((c) => {
+      const mats = c.isMesh ? (Array.isArray(c.material) ? c.material : [c.material]) : [];
+      for (const m of mats) {
+        if (m && m.emissive) m.emissiveIntensity = intensity;
+      }
+    });
+  }
+}
+
+function addBlobShadowMesh(parent, w, d) {
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false
+  });
+  const m = new THREE.Mesh(new THREE.CircleGeometry(1, 20), mat);
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = 0.03;
+  m.scale.set(w, d, 1);
+  m.renderOrder = 1;
+  m.castShadow = false;
+  m.receiveShadow = false;
+  parent.add(m);
+  return m;
+}
+
 function buildTruck() {
   const g = new THREE.Group();
   scene.add(g);
-  const spr = isoSprite(loadSpr('truck_se.png'), 4.15, { parent: g, order: 4 });
-  lightPool(loadSpr('pool_head.png'), 4.4, 3.2, g, 0, 3.1, 0.05).userData.isHead = true;
+  const model = instanceModel(assets.models.truck);
+  model.scale.setScalar(VEHICLE_SCALE);
+  g.add(model);
+  const parts = collectVehicleParts(g);
+  const S = VEHICLE_SCALE;
+  lightPool(loadSpr('pool_head.png'), 5.6 * S, 3.8 * S, g, 0, 3.4 * S, 0.05).userData.isHead = true;
+  addBlobShadowMesh(g, 1.5 * S, 2.8 * S);
   vehicle.truck = {
-    group: g, sprite: spr,
+    group: g, model, parts, sprite: null,
     x: SAFE_SPAWN.x, z: SAFE_SPAWN.z, heading: SAFE_SPAWN.heading, speed: 0, steer: 0,
-    wheelbase: 2.55, width: 2.5, length: 4.3, hitchOff: 4.3 * 0.48
+    wheelbase: 3.35 * S, width: 2.48 * S, length: 5.7 * S, hitchOff: 3.22 * S,
+    track: 1.92 * S, wheelR: 0.52 * S
   };
-  setDirSprite(spr, TRUCK_DIR, vehicle.truck.heading);
 }
 
 function trailerKindSpec(kind) {
-  if (kind === 'ferris') return { length: 8.4, width: 2.5, tongue: 1.5, axle: 3.2, color: 0xffffff };
-  if (kind === 'food') return { length: 5.6, width: 2.4, tongue: 1.3, axle: 2.2, color: 0xffffff };
-  return { length: 5.2, width: 2.4, tongue: 1.3, axle: 2.0, color: 0xffffff };
+  // hitchOff = origin (deck center) to coupler; axle = hitch-to-axle length; length = overall
+  const S = VEHICLE_SCALE;
+  if (kind === 'ferris') return { length: 8.2 * S, width: 2.35 * S, tongue: 1.7 * S, axle: 6.70 * S, hitchOff: 4.95 * S };
+  if (kind === 'food') return { length: 6.45 * S, width: 2.35 * S, tongue: 1.45 * S, axle: 4.95 * S, hitchOff: 3.95 * S };
+  return { length: 6.1 * S, width: 2.35 * S, tongue: 1.4 * S, axle: 4.60 * S, hitchOff: 3.75 * S };
 }
 
 function buildTrailer(kind) {
@@ -954,20 +1027,23 @@ function buildTrailer(kind) {
   const spec = trailerKindSpec(kind);
   const g = new THREE.Group();
   scene.add(g);
-  const spr = isoSprite(loadSpr('trailer_se.png'), kind === 'ferris' ? 5.6 : 4.6, { parent: g, order: 3 });
+  const src = assets.models['trailer_' + kind] || assets.models.trailer_ferris;
+  const model = instanceModel(src);
+  model.scale.setScalar(VEHICLE_SCALE);
+  g.add(model);
+  const parts = collectVehicleParts(g);
+  addBlobShadowMesh(g, 1.4 * VEHICLE_SCALE, spec.length * 0.42);
   vehicle.trailer = {
-    group: g, sprite: spr, kind,
+    group: g, model, parts, sprite: null, kind,
     x: 0, z: 0, heading: 0,
     length: spec.length, width: spec.width, tongue: spec.tongue, axle: spec.axle,
-    hitchOff: spec.tongue + spec.length * 0.38, cargo: { visible: true }
+    hitchOff: spec.hitchOff, wheelR: 0.48, cargo: { visible: true }
   };
-  setDirSprite(spr, TRAILER_DIR, 0);
   return vehicle.trailer;
 }
 
 function hitchWorld() {
   const t = vehicle.truck;
-  // hitch is behind the truck along -heading (rear is -Z in truck space)
   const back = t.hitchOff;
   return {
     x: t.x - Math.sin(t.heading) * back,
@@ -975,10 +1051,26 @@ function hitchWorld() {
   };
 }
 
-function syncVehicleMeshes() {
-  if (vehicle.truck && vehicle.truck.sprite) setDirSprite(vehicle.truck.sprite, TRUCK_DIR, vehicle.truck.heading);
-  if (vehicle.trailer && vehicle.trailer.sprite) setDirSprite(vehicle.trailer.sprite, TRAILER_DIR, vehicle.trailer.heading);
+function updateVehicleLights() {
   const t = vehicle.truck;
+  const night = G._lampF || 0;
+  const reversing = !!(t && (t.speed < -0.2 || (G.mode === 'play' && input.reverse && !input.drive)));
+  if (t && t.parts) {
+    setLamp(t.parts.heads, 0.2 + night * 2.3);
+    setLamp(t.parts.tails, 0.2 + night * 2.0);
+    setLamp(t.parts.revs, reversing ? 2.6 : 0.0);
+    setLamp(t.parts.cabs, 0.35 + night * 2.4);
+  }
+  const tr = vehicle.trailer;
+  if (tr && tr.parts && tr.group.visible) {
+    setLamp(tr.parts.tails, 0.2 + night * 2.2);
+    setLamp(tr.parts.markers, 0.25 + night * 2.6);
+  }
+}
+
+function syncVehicleMeshes() {
+  const t = vehicle.truck;
+  if (!t || !t.group) return;
   t.group.position.set(t.x, 0, t.z);
   t.group.rotation.y = t.heading;
   const tr = vehicle.trailer;
@@ -986,60 +1078,102 @@ function syncVehicleMeshes() {
     tr.group.position.set(tr.x, 0, tr.z);
     tr.group.rotation.y = tr.heading;
   }
-  // headlight pool on the truck
   t.group.traverse((c) => {
     if (c.userData && c.userData.isHead && c.material) {
       c.material.opacity = (G._lampF || 0) * 0.95;
     }
   });
+  updateVehicleLights();
 }
 
 function placeTrailerOnHitch() {
   const t = vehicle.truck, tr = vehicle.trailer;
   if (!tr) return;
   const h = hitchWorld();
-  // trailer origin is hitchOff behind the hitch along trailer heading
   tr.x = h.x - Math.sin(tr.heading) * tr.hitchOff;
   tr.z = h.z - Math.cos(tr.heading) * tr.hitchOff;
 }
 
-function collideAt(x, z, halfW, halfL, heading) {
-  // sample 4 corners of a box
-  const hx = halfW, hz = halfL;
+function obbHitsCircle(x, z, hw, hl, heading, cx, cz, r) {
   const s = Math.sin(heading), c = Math.cos(heading);
-  const pts = [[hx, hz], [-hx, hz], [hx, -hz], [-hx, -hz], [0, hz], [0, -hz]];
-  for (const [lx, lz] of pts) {
+  const dx = cx - x, dz = cz - z;
+  const lx = dx * c - dz * s;
+  const lz = dx * s + dz * c;
+  const qx = clamp(lx, -hw, hw);
+  const qz = clamp(lz, -hl, hl);
+  return Math.hypot(lx - qx, lz - qz) < r;
+}
+
+function obbHitsAabb(x, z, hw, hl, heading, a) {
+  const s = Math.sin(heading), c = Math.cos(heading);
+  const corners = [];
+  for (const [lx, lz] of [[hw, hl], [-hw, hl], [hw, -hl], [-hw, -hl]]) {
+    corners.push([x + lx * c + lz * s, z + lz * c - lx * s]);
+  }
+  const aabb = [[a.x0, a.z0], [a.x1, a.z0], [a.x1, a.z1], [a.x0, a.z1]];
+  const axes = [[1, 0], [0, 1], [c, -s], [s, c]];
+  for (const [ax, ay] of axes) {
+    let mn0 = Infinity, mx0 = -Infinity, mn1 = Infinity, mx1 = -Infinity;
+    for (const [px, pz] of corners) {
+      const d = px * ax + pz * ay;
+      if (d < mn0) mn0 = d; if (d > mx0) mx0 = d;
+    }
+    for (const [px, pz] of aabb) {
+      const d = px * ax + pz * ay;
+      if (d < mn1) mn1 = d; if (d > mx1) mx1 = d;
+    }
+    if (mx0 < mn1 || mx1 < mn0) return false;
+  }
+  return true;
+}
+
+function collideAt(x, z, halfW, halfL, heading) {
+  const s = Math.sin(heading), c = Math.cos(heading);
+  for (const [lx, lz] of [[halfW, halfL], [-halfW, halfL], [halfW, -halfL], [-halfW, -halfL]]) {
     const wx = x + lx * c + lz * s;
     const wz = z + lz * c - lx * s;
-    // world bounds
     if (wx < -34 || wx > 34 || wz < -28 || wz > 30) return true;
-    for (const o of world.obstacles) {
-      if (o.r) {
-        if (Math.hypot(wx - o.x, wz - o.z) < o.r + 0.4) return true;
-      } else if (o.aabb) {
-        const a = o.aabb;
-        if (wx > a.x0 && wx < a.x1 && wz > a.z0 && wz < a.z1) return true;
-      }
+  }
+  const pad = 0.12;
+  for (const o of world.obstacles) {
+    if (o.r) {
+      if (obbHitsCircle(x, z, halfW, halfL, heading, o.x, o.z, o.r + pad)) return true;
+    } else if (o.aabb) {
+      if (obbHitsAabb(x, z, halfW, halfL, heading, o.aabb)) return true;
     }
-    // placed ride footprints
-    for (const k of ['ferris', 'food', 'booth']) {
-      const r = rides[k];
-      if (!r || !r.placed) continue;
-      const p = r.footprint;
-      if (Math.abs(wx - p.x) < p.hw && Math.abs(wz - p.z) < p.hd) return true;
-    }
+  }
+  for (const k of ['ferris', 'food', 'booth']) {
+    const r = rides[k];
+    if (!r || !r.placed) continue;
+    const p = r.footprint;
+    if (obbHitsAabb(x, z, halfW, halfL, heading, {
+      x0: p.x - p.hw, x1: p.x + p.hw, z0: p.z - p.hd, z1: p.z + p.hd
+    })) return true;
   }
   return false;
 }
 
 function truckHalf() {
   const t = vehicle.truck;
-  return { hw: t.width * 0.45, hl: t.length * 0.42 };
+  return { hw: t.width * 0.48, hl: t.length * 0.48 };
 }
-function trailerHalf(tr) {
+function trailerBox(tr) {
   tr = tr || vehicle.trailer;
   if (!tr) return null;
-  return { hw: tr.width * 0.45, hl: tr.length * 0.4 };
+  const hl = tr.length * 0.5;
+  const shift = tr.hitchOff - hl;
+  const s = Math.sin(tr.heading), c = Math.cos(tr.heading);
+  return {
+    x: tr.x + s * shift,
+    z: tr.z + c * shift,
+    hw: tr.width * 0.48,
+    hl,
+    heading: tr.heading
+  };
+}
+function trailerHalf(tr) {
+  const b = trailerBox(tr);
+  return b ? { hw: b.hw, hl: b.hl } : null;
 }
 function truckCollides(x, z, heading) {
   const t = vehicle.truck;
@@ -1050,8 +1184,8 @@ function truckCollides(x, z, heading) {
 function trailerCollides(tr) {
   tr = tr || vehicle.trailer;
   if (!tr || !tr.group || !tr.group.visible) return false;
-  const h = trailerHalf(tr);
-  return collideAt(tr.x, tr.z, h.hw, h.hl, tr.heading);
+  const b = trailerBox(tr);
+  return collideAt(b.x, b.z, b.hw, b.hl, b.heading);
 }
 function vehicleIsStuck() {
   return truckCollides() || trailerCollides();
@@ -1085,12 +1219,11 @@ function spawnTruckSafe(opts = {}) {
   const hooked = opts.hooked !== undefined ? !!opts.hooked : !!G.hooked;
   const candidates = [
     SAFE_SPAWN,
-    { x: -3.2, z: 20.5, heading: -Math.PI / 2 },
-    { x: 2.4, z: 20.5, heading: -Math.PI / 2 },
-    { x: 0, z: 18.4, heading: Math.PI },
-    { x: -3.5, z: 18.5, heading: Math.PI },
-    { x: 3.2, z: 18.5, heading: Math.PI },
-    { x: 0, z: 22.8, heading: -Math.PI / 2 }
+    { x: -2.4, z: 20.6, heading: -Math.PI / 2 },
+    { x: 1.8, z: 20.6, heading: -Math.PI / 2 },
+    { x: -1.5, z: 18.8, heading: Math.PI },
+    { x: 2.2, z: 18.8, heading: Math.PI },
+    { x: 0, z: 22.4, heading: -Math.PI / 2 }
   ];
   let placed = false;
   for (const c of candidates) {
@@ -1107,7 +1240,7 @@ function spawnTruckSafe(opts = {}) {
     G.follow = true;
     G.pan.set(t.x, 0, t.z);
   }
-  if (typeof syncVehicleMeshes === 'function' && t.group) syncVehicleMeshes();
+  if (t.group) syncVehicleMeshes();
 }
 
 function evictIfStuck(announce) {
@@ -1129,7 +1262,6 @@ function stepVehicle(dt) {
   if (G.mode !== 'play' || G.setupKind) return;
   const t = vehicle.truck;
   const wantDrive = input.drive ? 1 : (input.reverse ? -1 : 0);
-  // keyboard fallback
   const kD = input.keys.KeyW || input.keys.ArrowUp;
   const kR = input.keys.KeyS || input.keys.ArrowDown || input.keys.KeyR;
   const kL = input.keys.KeyA || input.keys.ArrowLeft;
@@ -1142,9 +1274,11 @@ function stepVehicle(dt) {
   if (kD) throttle = 1;
   if (kR) throttle = -1;
 
-  const maxSteer = 0.7;
-  const steerTarget = steerIn * maxSteer;
-  t.steer = lerp(t.steer, steerTarget, 1 - Math.pow(0.001, dt));
+  // Bicycle-model truck: steer angle limited and reduced at speed
+  const maxSteer = 0.62;
+  const speedFade = 1 / (1 + Math.abs(t.speed) * 0.09);
+  const steerTarget = steerIn * maxSteer * speedFade;
+  t.steer = lerp(t.steer, steerTarget, 1 - Math.pow(0.0008, dt));
 
   const maxSpd = throttle < 0 ? 5.2 : 8.5;
   const acc = throttle < 0 ? 6.5 : 8.0;
@@ -1152,11 +1286,12 @@ function stepVehicle(dt) {
   if (throttle === 0) t.speed = lerp(t.speed, 0, 1 - Math.pow(0.04, dt));
   else t.speed += clamp(want - t.speed, -acc * dt * 1.4, acc * dt);
 
-  // jackknife lock: cannot add more reverse while folded
-  if (vehicle.jackknife && t.speed < 0) t.speed = Math.max(t.speed, -0.15);
+  // Jackknife: must pull forward — no more reverse while folded
+  if (vehicle.jackknife && t.speed < 0) t.speed = Math.max(t.speed, -0.12);
 
   const wb = t.wheelbase;
-  const nxHeading = t.heading + (t.speed * dt * Math.tan(t.steer)) / wb;
+  const yawRate = (t.speed * Math.tan(t.steer)) / wb;
+  const nxHeading = t.heading + yawRate * dt;
   const nx = t.x + Math.sin(nxHeading) * t.speed * dt;
   const nz = t.z + Math.cos(nxHeading) * t.speed * dt;
 
@@ -1164,11 +1299,9 @@ function stepVehicle(dt) {
   const curHit = collideAt(t.x, t.z, h.hw, h.hl, t.heading);
   const hitTruck = collideAt(nx, nz, h.hw, h.hl, nxHeading);
   if (hitTruck && !curHit) {
-    // bounced off a solid — keep the current (clear) pose
     t.speed *= -0.15;
     audio.thump && audio.thump();
   } else if (hitTruck && curHit) {
-    // already overlapping a collider: allow a slide out, or teleport to a safe spawn
     const hitX = collideAt(nx, t.z, h.hw, h.hl, nxHeading);
     const hitZ = collideAt(t.x, nz, h.hw, h.hl, nxHeading);
     if (!hitX) { t.x = nx; t.heading = wrapPi(nxHeading); }
@@ -1177,45 +1310,57 @@ function stepVehicle(dt) {
     t.x = nx; t.z = nz; t.heading = wrapPi(nxHeading);
   }
 
-  // wheels roll + front steer
-  const roll = (t.speed * dt) / 0.48;
-  (t.wheels || []).forEach((w, i) => {
-    w.rotation.x += roll;
-    if (i < 2) w.rotation.y = t.steer * 0.9;
-  });
+  // Front wheels visibly steer (Ackermann); all wheels roll
+  if (t.parts) {
+    const track = t.track || 1.92;
+    const st = t.steer;
+    t.parts.steers.forEach((node) => {
+      if (Math.abs(st) < 1e-4) { node.rotation.y = 0; return; }
+      const r = wb / Math.tan(st);
+      const side = node.position.x < 0 ? 1 : -1;
+      node.rotation.y = Math.atan(wb / (r + side * track * 0.5));
+    });
+    const roll = (t.speed * dt) / (t.wheelR || 0.52);
+    t.parts.wheels.forEach((w) => { w.rotateX(roll); });
+  }
 
   const tr = vehicle.trailer;
   if (G.hooked && tr && tr.group.visible) {
-    // standard truck-trailer kinematic
-    const hitch = hitchWorld();
-    const dx = hitch.x - (tr.x + Math.sin(tr.heading) * tr.hitchOff);
-    const dz = hitch.z - (tr.z + Math.cos(tr.heading) * tr.hitchOff);
-    // angle between trailer heading and truck
-    let psi = angDiff(tr.heading, t.heading);
-    const L = tr.length * 0.62 + tr.tongue;
-    // d(trailer heading)/dt ≈ (speed / L) * sin(truckHeading - trailerHeading)
-    const dHead = (t.speed / Math.max(1.2, L)) * Math.sin(angDiff(t.heading, tr.heading));
-    tr.heading = wrapPi(tr.heading + dHead * dt);
+    // Real hitch velocity (includes yaw swing behind the rear axle) and
+    // kinematic trailer: φ̇ = (v_hitch · n_perp) / L, L = hitch-to-axle.
+    const appliedYaw = (t.heading === wrapPi(nxHeading) || (!hitTruck)) ? yawRate : 0;
+    const dH = t.hitchOff;
+    const vhx = t.speed * Math.sin(t.heading) - dH * Math.cos(t.heading) * appliedYaw;
+    const vhz = t.speed * Math.cos(t.heading) + dH * Math.sin(t.heading) * appliedYaw;
+    const L = Math.max(1.4, tr.axle);
+    const phi = tr.heading;
+    const phiDot = (vhx * Math.cos(phi) - vhz * Math.sin(phi)) / L;
+    tr.heading = wrapPi(tr.heading + phiDot * dt);
 
-    psi = angDiff(tr.heading, t.heading);
-    const JACK = 1.45; // ~83 degrees
+    const JACK = 1.40; // ~80 degrees
+    const psi = angDiff(tr.heading, t.heading);
     if (Math.abs(psi) > JACK) {
-      tr.heading = t.heading + Math.sign(psi) * JACK;
-      vehicle.jackknife = true;
-    } else if (Math.abs(psi) < 0.7 && t.speed > 0.4) {
+      tr.heading = wrapPi(t.heading + Math.sign(psi) * JACK);
+      if (!vehicle.jackknife) {
+        vehicle.jackknife = true;
+        setHint('JACKKNIFE — pull forward to straighten.');
+      }
+    } else if (Math.abs(psi) < 0.65 && t.speed > 0.45) {
       vehicle.jackknife = false;
     }
     placeTrailerOnHitch();
 
-    if (collideAt(tr.x, tr.z, tr.width * 0.45, tr.length * 0.4, tr.heading)) {
-      // only bounce if the truck itself was clear; an already-overlapping rig must be able to leave
+    const b = trailerBox(tr);
+    if (collideAt(b.x, b.z, b.hw, b.hl, b.heading)) {
       if (!curHit) {
         t.speed *= -0.2;
         audio.thump && audio.thump();
       }
     }
-    const rollT = (t.speed * dt) / 0.42;
-    (tr.wheels || []).forEach((w) => { w.rotation.x += rollT; });
+    if (tr.parts) {
+      const rollT = (t.speed * dt) / (tr.wheelR || 0.48);
+      tr.parts.wheels.forEach((w) => { w.rotateX(rollT); });
+    }
   }
 
   const jk = $('jackknife');
@@ -1229,7 +1374,6 @@ function stepVehicle(dt) {
     vehicle.stuckT = 0;
   }
 
-  // assist ghost
   for (const id of Object.keys(world.pads)) {
     const pad = world.pads[id];
     const active = G.assist && G.currentJob === id && !G.placed[id];
@@ -2275,7 +2419,7 @@ window.addEventListener('resize', applyCamera);
 function exposeDebug() {
   window.LOT = {
     get ready() { return ready; },
-    G, newGame, continueGame, showTitle, save, loadSave,
+    G, newGame, continueGame, showTitle, save, loadSave, applyCamera, placeTrailerOnHitch, hitchWorld,
     SAFE_SPAWN, spawnTruckSafe, evictIfStuck, resetTruckToEntrance, vehicleIsStuck, collideAt, input, vehicle,
     truckPose() {
       const t = vehicle.truck;
