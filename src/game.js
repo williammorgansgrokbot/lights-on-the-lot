@@ -2,7 +2,11 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { RGBELoader } from '../vendor/addons/RGBELoader.js';
 
-const SAVE_KEY = 'wm.lights-on-the-lot.v1';
+const SAVE_KEY = 'wm.lights-on-the-lot.v2';
+const SAVE_KEY_LEGACY = 'wm.lights-on-the-lot.v1';
+// Open street south of the gate, in the entrance lane, clear of parked cars and ride pads.
+const SAFE_SPAWN = { x: 0, z: 20.5, heading: -Math.PI / 2 };
+const TRAILER_STAGING = { x: 7.2, z: 20.5, heading: -Math.PI / 2 };
 const $ = (id) => document.getElementById(id);
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -831,11 +835,11 @@ function buildLot() {
   lightPool(loadSpr('pool_warm.png'), 5.5, 4.5, scene, -6.5, 13.6, 0.045);
   world.obstacles.push({ aabb: { x0: -7.6, x1: -5.4, z0: 12.3, z1: 14.1 } });
 
-  // parked cars along the street
-  prop('car_blue.png', -14.5, 19.6, 1.85, { block: 1.3, sw: 1.5, sd: 1.1 });
-  prop('car_cream.png', 15.2, 19.8, 1.8, { block: 1.3, sw: 1.5, sd: 1.1 });
-  prop('car_blue.png', 9.5, 22.4, 1.75, { block: 1.2, sw: 1.4, sd: 1.0 });
-  prop('car_cream.png', -9.2, 22.6, 1.7, { block: 1.2, sw: 1.4, sd: 1.0 });
+  // parked cars along the street — kept out of the entrance lane (x ≈ -6..8, z ≈ 16..24)
+  prop('car_blue.png', -17.4, 19.6, 1.85, { block: 1.3, sw: 1.5, sd: 1.1 });
+  prop('car_cream.png', 17.6, 19.8, 1.8, { block: 1.3, sw: 1.5, sd: 1.1 });
+  prop('car_blue.png', 17.2, 23.2, 1.75, { block: 1.2, sw: 1.4, sd: 1.0 });
+  prop('car_cream.png', -17.0, 23.4, 1.7, { block: 1.2, sw: 1.4, sd: 1.0 });
 
   // midway / ride-adjacent props
   prop('trash.png', 8.2, 5.4, 1.15, { block: 0.3 });
@@ -847,7 +851,7 @@ function buildLot() {
   prop('generator.png', -16.4, -7.2, 1.35, { block: 0.6 });
   prop('crates.png', -16.6, 1.5, 1.2, { block: 0.6 });
   prop('barrel.png', -15.4, -0.4, 1.15, { block: 0.35 });
-  prop('barriers.png', 0.2, 12.4, 1.15, { block: 0.4, sw: 1.4, sd: 0.3 });
+  prop('barriers.png', 6.4, 12.6, 1.15, { block: 0.4, sw: 1.4, sd: 0.3 });
   prop('crates.png', 14.6, 4.6, 1.15, { block: 0.5 });
 
   // string lights between lamp posts (painted sagging strand)
@@ -933,8 +937,8 @@ function buildTruck() {
   lightPool(loadSpr('pool_head.png'), 4.4, 3.2, g, 0, 3.1, 0.05).userData.isHead = true;
   vehicle.truck = {
     group: g, sprite: spr,
-    x: 8, z: 22, heading: -Math.PI / 2, speed: 0, steer: 0,
-    wheelbase: 2.55, width: 2.5, length: 4.3, hitchOff: 0.2
+    x: SAFE_SPAWN.x, z: SAFE_SPAWN.z, heading: SAFE_SPAWN.heading, speed: 0, steer: 0,
+    wheelbase: 2.55, width: 2.5, length: 4.3, hitchOff: 4.3 * 0.48
   };
   setDirSprite(spr, TRUCK_DIR, vehicle.truck.heading);
 }
@@ -955,7 +959,7 @@ function buildTrailer(kind) {
     group: g, sprite: spr, kind,
     x: 0, z: 0, heading: 0,
     length: spec.length, width: spec.width, tongue: spec.tongue, axle: spec.axle,
-    hitchOff: spec.tongue, cargo: { visible: true }
+    hitchOff: spec.tongue + spec.length * 0.38, cargo: { visible: true }
   };
   setDirSprite(spr, TRAILER_DIR, 0);
   return vehicle.trailer;
@@ -1028,6 +1032,97 @@ function collideAt(x, z, halfW, halfL, heading) {
   return false;
 }
 
+function truckHalf() {
+  const t = vehicle.truck;
+  return { hw: t.width * 0.45, hl: t.length * 0.42 };
+}
+function trailerHalf(tr) {
+  tr = tr || vehicle.trailer;
+  if (!tr) return null;
+  return { hw: tr.width * 0.45, hl: tr.length * 0.4 };
+}
+function truckCollides(x, z, heading) {
+  const t = vehicle.truck;
+  if (!t) return false;
+  const h = truckHalf();
+  return collideAt(x ?? t.x, z ?? t.z, h.hw, h.hl, heading ?? t.heading);
+}
+function trailerCollides(tr) {
+  tr = tr || vehicle.trailer;
+  if (!tr || !tr.group || !tr.group.visible) return false;
+  const h = trailerHalf(tr);
+  return collideAt(tr.x, tr.z, h.hw, h.hl, tr.heading);
+}
+function vehicleIsStuck() {
+  return truckCollides() || trailerCollides();
+}
+
+function tryPoseClear(x, z, heading, hooked) {
+  const t = vehicle.truck;
+  const ox = t.x, oz = t.z, oh = t.heading;
+  let trx, trz, trh;
+  const tr = vehicle.trailer;
+  if (tr) { trx = tr.x; trz = tr.z; trh = tr.heading; }
+  t.x = x; t.z = z; t.heading = heading; t.speed = 0; t.steer = 0;
+  if (hooked && tr) {
+    tr.heading = heading;
+    placeTrailerOnHitch();
+  }
+  const ok = !truckCollides() && !(hooked && trailerCollides());
+  if (!ok) {
+    t.x = ox; t.z = oz; t.heading = oh;
+    if (tr && trx !== undefined) { tr.x = trx; tr.z = trz; tr.heading = trh; }
+  }
+  return ok;
+}
+
+function spawnTruckSafe(opts = {}) {
+  const t = vehicle.truck;
+  if (!t) return;
+  t.speed = 0; t.steer = 0;
+  vehicle.jackknife = false;
+  vehicle.stuckT = 0;
+  const hooked = opts.hooked !== undefined ? !!opts.hooked : !!G.hooked;
+  const candidates = [
+    SAFE_SPAWN,
+    { x: -3.2, z: 20.5, heading: -Math.PI / 2 },
+    { x: 2.4, z: 20.5, heading: -Math.PI / 2 },
+    { x: 0, z: 18.4, heading: Math.PI },
+    { x: -3.5, z: 18.5, heading: Math.PI },
+    { x: 3.2, z: 18.5, heading: Math.PI },
+    { x: 0, z: 22.8, heading: -Math.PI / 2 }
+  ];
+  let placed = false;
+  for (const c of candidates) {
+    if (tryPoseClear(c.x, c.z, c.heading, hooked)) { placed = true; break; }
+  }
+  if (!placed) {
+    t.x = SAFE_SPAWN.x; t.z = SAFE_SPAWN.z; t.heading = SAFE_SPAWN.heading;
+    if (hooked && vehicle.trailer) {
+      vehicle.trailer.heading = t.heading;
+      placeTrailerOnHitch();
+    }
+  }
+  if (opts.follow !== false) {
+    G.follow = true;
+    G.pan.set(t.x, 0, t.z);
+  }
+  if (typeof syncVehicleMeshes === 'function' && t.group) syncVehicleMeshes();
+}
+
+function evictIfStuck(announce) {
+  if (!vehicle.truck || !vehicleIsStuck()) return false;
+  spawnTruckSafe();
+  if (announce !== false) setHint('Truck moved to the entrance — it was stuck in a ride.');
+  return true;
+}
+
+function resetTruckToEntrance() {
+  spawnTruckSafe({ hooked: G.hooked, follow: true });
+  setHint('Truck reset to the lot entrance.');
+  if (G.mode === 'play') save();
+}
+
 vehicle.jackknife = false;
 
 function stepVehicle(dt) {
@@ -1065,10 +1160,19 @@ function stepVehicle(dt) {
   const nx = t.x + Math.sin(nxHeading) * t.speed * dt;
   const nz = t.z + Math.cos(nxHeading) * t.speed * dt;
 
-  const hitTruck = collideAt(nx, nz, t.width * 0.45, t.length * 0.42, nxHeading);
-  if (hitTruck) {
+  const h = truckHalf();
+  const curHit = collideAt(t.x, t.z, h.hw, h.hl, t.heading);
+  const hitTruck = collideAt(nx, nz, h.hw, h.hl, nxHeading);
+  if (hitTruck && !curHit) {
+    // bounced off a solid — keep the current (clear) pose
     t.speed *= -0.15;
     audio.thump && audio.thump();
+  } else if (hitTruck && curHit) {
+    // already overlapping a collider: allow a slide out, or teleport to a safe spawn
+    const hitX = collideAt(nx, t.z, h.hw, h.hl, nxHeading);
+    const hitZ = collideAt(t.x, nz, h.hw, h.hl, nxHeading);
+    if (!hitX) { t.x = nx; t.heading = wrapPi(nxHeading); }
+    else if (!hitZ) { t.z = nz; t.heading = wrapPi(nxHeading); }
   } else {
     t.x = nx; t.z = nz; t.heading = wrapPi(nxHeading);
   }
@@ -1104,9 +1208,11 @@ function stepVehicle(dt) {
     placeTrailerOnHitch();
 
     if (collideAt(tr.x, tr.z, tr.width * 0.45, tr.length * 0.4, tr.heading)) {
-      // revert a bit
-      t.speed *= -0.2;
-      audio.thump && audio.thump();
+      // only bounce if the truck itself was clear; an already-overlapping rig must be able to leave
+      if (!curHit) {
+        t.speed *= -0.2;
+        audio.thump && audio.thump();
+      }
     }
     const rollT = (t.speed * dt) / 0.42;
     (tr.wheels || []).forEach((w) => { w.rotation.x += rollT; });
@@ -1115,6 +1221,13 @@ function stepVehicle(dt) {
   const jk = $('jackknife');
   if (vehicle.jackknife) jk.classList.remove('hidden');
   else jk.classList.add('hidden');
+
+  if (vehicleIsStuck()) {
+    vehicle.stuckT = (vehicle.stuckT || 0) + dt;
+    if (vehicle.stuckT > 0.6) evictIfStuck(true);
+  } else {
+    vehicle.stuckT = 0;
+  }
 
   // assist ghost
   for (const id of Object.keys(world.pads)) {
@@ -1148,8 +1261,8 @@ function spawnNextTrailer(kind) {
   G.currentJob = kind;
   G.hooked = false;
   const tr = buildTrailer(kind);
-  // park at the street staging area
-  tr.x = 10; tr.z = 21.5; tr.heading = -Math.PI / 2;
+  // park at the street staging area, east of the clear entrance lane
+  tr.x = TRAILER_STAGING.x; tr.z = TRAILER_STAGING.z; tr.heading = TRAILER_STAGING.heading;
   tr.group.visible = true;
   tr.cargo.visible = true;
   setHint(kind === 'food' ? 'Hook the food-stand trailer and back it onto its pad.'
@@ -1267,6 +1380,7 @@ function placeRide(kind, instant) {
     G.placed[kind] = true;
     if (tr && tr.kind === kind) { tr.group.visible = false; tr.cargo.visible = false; }
     G.hooked = false;
+    if (G.mode === 'play') evictIfStuck(true);
   } else {
     rec.group.scale.set(0.02, 0.02, 0.02);
     rec.placed = false;
@@ -1304,6 +1418,7 @@ function tickSetup(dt) {
       setHint('The midway is open. Tap the ring-toss booth to play. Earn cash from the crowd.');
     }
     updateBlocking();
+    evictIfStuck(true);
   }
 }
 
@@ -1768,7 +1883,19 @@ function save() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch (e) {}
 }
 function loadSave() {
-  try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; }
+  try {
+    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function validNum(n) { return typeof n === 'number' && Number.isFinite(n); }
+function saveLooksValid(s) {
+  if (!s || typeof s !== 'object') return false;
+  if (s.truck && (!validNum(s.truck.x) || !validNum(s.truck.z) || !validNum(s.truck.heading))) return false;
+  if (s.hour != null && !validNum(s.hour)) return false;
+  if (s.day != null && (!validNum(s.day) || s.day < 1 || s.day > 999)) return false;
+  return true;
 }
 
 function resetRidesHidden() {
@@ -1795,14 +1922,11 @@ function newGame() {
   G.zoom = 16;
   resetRidesHidden();
   while (crowds.length) { scene.remove(crowds.pop().group); }
-  const t = vehicle.truck;
-  t.x = 8; t.z = 22; t.heading = -Math.PI / 2; t.speed = 0; t.steer = 0;
   spawnNextTrailer('ferris');
   G.hooked = true;
-  vehicle.trailer.heading = t.heading;
-  placeTrailerOnHitch();
+  spawnTruckSafe({ hooked: true, follow: true });
   vehicle.jackknife = false;
-  G.pan.set(t.x, 0, t.z);
+  const t = vehicle.truck;
   setAtmosphere(G.hour);
   hideTitle();
   $('settings').classList.add('hidden');
@@ -1813,7 +1937,7 @@ function newGame() {
 
 function continueGame() {
   const s = loadSave();
-  if (!s) return newGame();
+  if (!s || !saveLooksValid(s)) return newGame();
   G.mode = 'play';
   G.hour = s.hour ?? 15;
   G.day = s.day ?? 1;
@@ -1848,18 +1972,24 @@ function continueGame() {
   } else if (!G.placed.food) spawnNextTrailer('food');
   else if (!G.placed.booth) spawnNextTrailer('booth');
   if (G.hooked && vehicle.trailer) placeTrailerOnHitch();
-  G.pan.set(t.x, 0, t.z);
+  if (!validNum(t.x) || !validNum(t.z) || !validNum(t.heading) || vehicleIsStuck()) {
+    spawnTruckSafe({ hooked: G.hooked, follow: true });
+    setHint('Welcome back — truck was moved to the entrance so it is not stuck.');
+  } else {
+    G.pan.set(t.x, 0, t.z);
+    setHint('Welcome back.');
+  }
   setAtmosphere(G.hour);
   updateBlocking();
   hideTitle();
   $('settings').classList.add('hidden');
   $('hud').classList.remove('hidden');
   $('optAssist').checked = G.assist;
-  setHint('Welcome back.');
+  save();
 }
 
-function showTitle() {
-  if (G.mode === 'play' && ready) {
+function showTitle(force) {
+  if (!force && G.mode === 'play' && ready) {
     console.warn("showTitle blocked during play", new Error().stack);
     return;
   }
@@ -1922,28 +2052,59 @@ function bindInput() {
     input.steer = clamp((cx - mid) / (r.width * 0.42), -1, 1);
     wheelEl.style.transform = `rotate(${input.steer * 90}deg)`;
   };
+  const listen = (el, type, fn) => el.addEventListener(type, fn, { passive: false });
   const onWheel = (ev) => {
     ev.preventDefault();
-    const t = ev.touches ? ev.touches[0] : ev;
-    setSteerFrom(t.clientX);
+    const pt = ev.touches ? ev.touches[0] : ev;
+    setSteerFrom(pt.clientX);
     G.follow = true;
   };
-  const endWheel = () => { input.steer = 0; input.wheelDragging = false; wheelEl.style.transform = 'rotate(0deg)'; };
-  pad.addEventListener('pointerdown', (e) => { pad.setPointerCapture(e.pointerId); input.wheelDragging = true; onWheel(e); acEnsure(); audio.want = true; });
-  pad.addEventListener('pointermove', (e) => { if (input.wheelDragging) onWheel(e); });
-  pad.addEventListener('pointerup', endWheel);
-  pad.addEventListener('pointercancel', endWheel);
+  const endWheel = (ev) => {
+    if (ev) ev.preventDefault();
+    input.steer = 0; input.wheelDragging = false; wheelEl.style.transform = 'rotate(0deg)';
+  };
+  listen(pad, 'pointerdown', (e) => {
+    e.preventDefault();
+    try { pad.setPointerCapture(e.pointerId); } catch (err) {}
+    input.wheelDragging = true; onWheel(e); acEnsure(); audio.want = true;
+  });
+  listen(pad, 'pointermove', (e) => { if (input.wheelDragging) onWheel(e); });
+  listen(pad, 'pointerup', endWheel);
+  listen(pad, 'pointercancel', endWheel);
+  listen(pad, 'touchstart', (e) => { input.wheelDragging = true; onWheel(e); acEnsure(); audio.want = true; });
+  listen(pad, 'touchmove', (e) => { if (input.wheelDragging) onWheel(e); });
+  listen(pad, 'touchend', endWheel);
+  listen(pad, 'touchcancel', endWheel);
 
   const holdBtn = (el, key) => {
-    const on = (e) => { e.preventDefault(); input[key] = 1; el.classList.add('on'); acEnsure(); audio.want = true; G.follow = true; };
-    const off = () => { input[key] = 0; el.classList.remove('on'); };
-    el.addEventListener('pointerdown', on);
-    el.addEventListener('pointerup', off);
-    el.addEventListener('pointercancel', off);
-    el.addEventListener('pointerleave', off);
+    if (!el) return;
+    const on = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.pointerId != null) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+      input[key] = 1;
+      el.classList.add('on');
+      acEnsure(); audio.want = true; G.follow = true;
+    };
+    const off = (e) => {
+      if (e) e.preventDefault();
+      input[key] = 0;
+      el.classList.remove('on');
+    };
+    // Do not listen for pointerleave — iOS Safari often fires it while the finger is still down,
+    // which cancelled D/R after one frame and made the truck feel stuck.
+    listen(el, 'pointerdown', on);
+    listen(el, 'pointerup', off);
+    listen(el, 'pointercancel', off);
+    listen(el, 'touchstart', on);
+    listen(el, 'touchend', off);
+    listen(el, 'touchcancel', off);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
   };
   holdBtn($('pDrive'), 'drive');
   holdBtn($('pRev'), 'reverse');
+  const touchRoot = $('touch');
+  if (touchRoot) touchRoot.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // canvas pan / pinch / click
   const pointers = input.pointers;
@@ -2017,12 +2178,19 @@ function bindInput() {
   $('btnMute').addEventListener('click', () => { acEnsure(); setMuted(!G.muted); save(); });
   $('btnSettings').addEventListener('click', openSettings);
   $('btnSettingsDone').addEventListener('click', closeSettings);
-  $('btnToTitle').addEventListener('click', () => { save(); closeSettings(); showTitle(); });
+  $('btnToTitle').addEventListener('click', () => { save(); closeSettings(); showTitle(true); });
   $('optSound').addEventListener('change', () => { acEnsure(); setMuted(!$('optSound').checked); save(); });
   $('optAssist').addEventListener('change', () => { G.assist = $('optAssist').checked; save(); });
   $('btnSetup').addEventListener('click', trySetup);
   $('btnHook').addEventListener('click', tryHook);
   $('btnRtClose').addEventListener('click', closeRingToss);
+  const onUnstuck = () => {
+    closeSettings();
+    if (G.mode !== 'play') return;
+    resetTruckToEntrance();
+  };
+  $('btnUnstuck').addEventListener('click', onUnstuck);
+  $('btnResetTruck').addEventListener('click', onUnstuck);
 }
 
 function openSettings() {
@@ -2108,6 +2276,16 @@ function exposeDebug() {
   window.LOT = {
     get ready() { return ready; },
     G, newGame, continueGame, showTitle, save, loadSave,
+    SAFE_SPAWN, spawnTruckSafe, evictIfStuck, resetTruckToEntrance, vehicleIsStuck, collideAt, input, vehicle,
+    truckPose() {
+      const t = vehicle.truck;
+      const tr = vehicle.trailer;
+      return {
+        x: t.x, z: t.z, heading: t.heading, speed: t.speed,
+        stuck: vehicleIsStuck(),
+        trailer: tr && tr.group && tr.group.visible ? { x: tr.x, z: tr.z, heading: tr.heading, kind: tr.kind } : null
+      };
+    },
     setHour(h) { G.hour = h; setAtmosphere(h); },
     setMuted,
     hideUI(v) {

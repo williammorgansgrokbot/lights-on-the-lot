@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#140c14">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Lights on the Lot</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -43,6 +43,7 @@
       <b id="hudClock">3:00 PM</b>
     </div>
     <div class="hbtns">
+      <button id="btnUnstuck" class="icon-btn" title="Unstick truck — reset to the entrance" aria-label="Unstick truck">↺</button>
       <button id="btnMute" class="icon-btn" title="Mute" aria-label="Mute">♪</button>
       <button id="btnSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
     </div>
@@ -76,6 +77,7 @@
     </label>
     <p class="fine">Assist is off by default. Backing is fully manual — a jackknife will lock the trailer until you pull forward.</p>
     <div class="keys">Touch: wheel + D / R pedals, pinch zoom, drag pan.<br>Keyboard: W/↑ drive, S/↓ or R reverse, A/D steer, E set up / hook, Esc menu.</div>
+    <button id="btnResetTruck" class="btn">RESET TRUCK</button>
     <button id="btnSettingsDone" class="btn">DONE</button>
     <button id="btnToTitle" class="btn ghost">TITLE SCREEN</button>
   </div>
@@ -91,6 +93,6 @@
 </div>
 
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
-<script type="module" src="src/game.js"></script>
+<script type="module" src="src/game.js?v=2"></script>
 </body>
 </html>
