@@ -3,13 +3,17 @@ import * as THREE from '../vendor/three.module.min.js';
 import { RGBELoader } from '../vendor/addons/RGBELoader.js';
 import { GLTFLoader } from '../vendor/addons/GLTFLoader.js';
 
-const SAVE_KEY = 'wm.lights-on-the-lot.v2';
-const SAVE_KEY_LEGACY = 'wm.lights-on-the-lot.v1';
+const SAVE_KEY = 'wm.lights-on-the-lot.v3';
+const SAVE_KEYS_LEGACY = ['wm.lights-on-the-lot.v2', 'wm.lights-on-the-lot.v1'];
 // Open street south of the gate, in the entrance lane, clear of parked cars and ride pads.
 const SAFE_SPAWN = { x: 0, z: 20.5, heading: -Math.PI / 2 };
-const VEHICLE_SCALE = 1.35; // 3D models need presence under the iso camera next to painted sprites
+// Sized to sit next to the painted parked cars (~1.8m tall). Physics lengths scale with this.
+const VEHICLE_SCALE = 0.82;
+const RIDE_SCALE = 0.62; // Ferris / booths in scale with cars, still readable
+const GATE_HALF = 7; // 14m entrance so a hooked rig can turn in
+const DEFAULT_ZOOM = 12.5;
 
-const TRAILER_STAGING = { x: 7.2, z: 20.5, heading: -Math.PI / 2 };
+const TRAILER_STAGING = { x: 5.5, z: 20.5, heading: -Math.PI / 2 };
 const $ = (id) => document.getElementById(id);
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -185,7 +189,7 @@ const G = {
   blocking: false,
   open: false,
   follow: true,
-  zoom: 16,
+  zoom: DEFAULT_ZOOM,
   pan: new THREE.Vector3(0, 0, 4),
   hint: '',
   hintT: 0,
@@ -252,7 +256,7 @@ manager.onProgress = (url, loaded, total) => {
 const SPR_FILES = [
   'ferris_00.png','ferris_01.png','ferris_night.png',
   'food_stand.png','food_stand_night.png','ring_booth.png','ring_booth_night.png','booth_close.png',
-  'tree_oak.png','kiosk.png','car_blue.png','car_cream.png','string_lights.png',
+  'tree_oak.png','kiosk.png','car_blue.png','car_cream.png',
   'trash.png','cones.png','balloons.png','generator.png','crates.png','barrel.png','barriers.png',
   'pool_warm.png','pool_amber.png','pool_ruby.png','pool_head.png','glow_warm.png','glow_ruby.png'
 ];
@@ -718,15 +722,15 @@ function buildLot() {
   addCurb(midX, LOT.z0 - curbT / 2, lotW + curbT * 2, curbT); // north
   addCurb(LOT.x0 - curbT / 2, midZ, curbT, lotD); // west
   addCurb(LOT.x1 + curbT / 2, midZ, curbT, lotD); // east
-  // south curbs split around entrance 8m wide
-  const gapW = 8;
+  // south curbs split around the widened entrance
+  const gapW = GATE_HALF * 2;
   const side = (lotW - gapW) / 2;
   addCurb(LOT.x0 + side / 2, LOT.z1 + curbT / 2, side, curbT);
   addCurb(LOT.x1 - side / 2, LOT.z1 + curbT / 2, side, curbT);
 
   // fences
   buildFence(LOT.x0, LOT.x1, LOT.z0 - 0.2, null);
-  buildFence(LOT.x0, LOT.x1, LOT.z1 + 0.2, { x0: -4, x1: 4 });
+  buildFence(LOT.x0, LOT.x1, LOT.z1 + 0.2, { x0: -GATE_HALF, x1: GATE_HALF });
   // east/west fences as posts+rails along z
   for (const x of [LOT.x0 - 0.2, LOT.x1 + 0.2]) {
     for (let z = LOT.z0; z <= LOT.z1 + 0.01; z += 2.2) {
@@ -738,12 +742,14 @@ function buildLot() {
   }
 
   // walking path — slightly lighter worn strip down the middle (paint lines as edges)
-  const pathW = 4.4;
+  const pathW = 6.2;
   world.path = { x: 0, z0: LOT.z0 + 1, z1: LOT.z1, half: pathW / 2 };
   // path edge lines
-  const addLine = (x, z, len, rotY) => {
+  // Flatten with rx, then spin in the ground plane with rz (not ry — Euler XYZ
+  // would tip a ry-rotated line straight up, which read as tall 'poles').
+  const addLine = (x, z, len, rotZ) => {
     const m = mesh(new THREE.PlaneGeometry(len, 0.16), M.line, {
-      x, y: 0.035, z, rx: -Math.PI / 2, ry: rotY, recv: false, cast: false
+      x, y: 0.035, z, rx: -Math.PI / 2, rz: rotZ, recv: false, cast: false
     });
     m.renderOrder = 1;
     return m;
@@ -783,9 +789,9 @@ function buildLot() {
   // Ferris on the west, facing the midway (+X). Trailer backs in heading west (-X) or along -X? 
   // Marked heading is the trailer heading when parked: we'll use heading = 0 (north, -Z? heading 0 = +Z south in our convention)
   // heading 0 = +Z (south). For a west pad, backing in from the path, trailer likely heads west (-X), heading = -PI/2
-  makePad('ferris', -11.2, -3.0, 10.2, 8.4, -Math.PI / 2, 'FERRIS');
-  makePad('food', 11.0, -1.5, 5.4, 4.6, Math.PI / 2, 'FOOD');
-  makePad('booth', 11.0, 7.2, 5.2, 4.4, Math.PI / 2, 'GAMES');
+  makePad('ferris', -11.2, -3.0, 10.2 * RIDE_SCALE, 8.4 * RIDE_SCALE, -Math.PI / 2, 'FERRIS');
+  makePad('food', 11.0, -1.5, 5.4 * RIDE_SCALE, 4.6 * RIDE_SCALE, Math.PI / 2, 'FOOD');
+  makePad('booth', 11.0, 7.2, 5.2 * RIDE_SCALE, 4.4 * RIDE_SCALE, Math.PI / 2, 'GAMES');
 
   // street lamps
   function lamp(x, z, real) {
@@ -794,9 +800,9 @@ function buildLot() {
     addNightLight(x, 5.05, z, 0xffc888, 5.5, 14, 2, !!real);
     world.lamps.push({ x, z });
   }
+  // Corner lot lamps only — no posts in the street / car-parking area
   lamp(-17.5, 13.5, true); lamp(17.5, 13.5, false);
   lamp(-17.5, -15, false); lamp(17.5, -15, true);
-  lamp(0, 20.5, true); lamp(-12, 20.5, false); lamp(12, 20.5, false);
 
   // trees around the grass
   function tree(x, z, s = 1) {
@@ -824,8 +830,8 @@ function buildLot() {
     { aabb: { x0: LOT.x0 - 0.5, x1: LOT.x1 + 0.5, z0: LOT.z0 - 0.6, z1: LOT.z0 } }, // north fence
     { aabb: { x0: LOT.x0 - 0.6, x1: LOT.x0, z0: LOT.z0, z1: LOT.z1 } },
     { aabb: { x0: LOT.x1, x1: LOT.x1 + 0.6, z0: LOT.z0, z1: LOT.z1 } },
-    { aabb: { x0: LOT.x0, x1: -4, z0: LOT.z1, z1: LOT.z1 + 0.6 } },
-    { aabb: { x0: 4, x1: LOT.x1, z0: LOT.z1, z1: LOT.z1 + 0.6 } }
+    { aabb: { x0: LOT.x0, x1: -GATE_HALF, z0: LOT.z1, z1: LOT.z1 + 0.6 } },
+    { aabb: { x0: GATE_HALF, x1: LOT.x1, z0: LOT.z1, z1: LOT.z1 + 0.6 } }
   );
 
 
@@ -842,10 +848,10 @@ function buildLot() {
     return spr;
   }
   // ticket kiosk at the entrance
-  prop('kiosk.png', -6.5, 13.2, 3.4, { keepLit: true, block: 1.1, sw: 1.2, sd: 1.0 });
-  addNightLight(-6.5, 2.4, 13.2, 0xffd8a0, 2.2, 6, 2, false);
-  lightPool(loadSpr('pool_warm.png'), 5.5, 4.5, scene, -6.5, 13.6, 0.045);
-  world.obstacles.push({ aabb: { x0: -7.6, x1: -5.4, z0: 12.3, z1: 14.1 } });
+  prop('kiosk.png', -9.4, 13.2, 3.4, { keepLit: true, block: 1.1, sw: 1.2, sd: 1.0 });
+  addNightLight(-9.4, 2.4, 13.2, 0xffd8a0, 2.2, 6, 2, false);
+  lightPool(loadSpr('pool_warm.png'), 5.5, 4.5, scene, -9.4, 13.6, 0.045);
+  world.obstacles.push({ aabb: { x0: -10.5, x1: -8.3, z0: 12.3, z1: 14.1 } });
 
   // parked cars along the street — kept out of the entrance lane (x ≈ -6..8, z ≈ 16..24)
   prop('car_blue.png', -22.0, 19.6, 1.85, { block: 1.3, sw: 1.5, sd: 1.1 });
@@ -857,37 +863,15 @@ function buildLot() {
   prop('trash.png', 8.2, 5.4, 1.15, { block: 0.3 });
   prop('trash.png', -6.0, 8.5, 1.1, { block: 0.3 });
   prop('trash.png', 8.4, -5.2, 1.15, { block: 0.3 });
-  prop('cones.png', 3.6, 13.0, 0.85, { block: 0.25, sw: 0.7, sd: 0.4 });
-  prop('cones.png', -3.4, 13.1, 0.85, { block: 0.25, sw: 0.7, sd: 0.4 });
+  prop('cones.png', 7.2, 13.0, 0.85, { block: 0.25, sw: 0.7, sd: 0.4 });
+  prop('cones.png', -7.2, 13.1, 0.85, { block: 0.25, sw: 0.7, sd: 0.4 });
   prop('balloons.png', 9.6, 9.4, 2.4, { keepLit: true, shadow: false, order: 6 });
   prop('generator.png', -16.4, -7.2, 1.35, { block: 0.6 });
   prop('crates.png', -16.6, 1.5, 1.2, { block: 0.6 });
   prop('barrel.png', -15.4, -0.4, 1.15, { block: 0.35 });
-  prop('barriers.png', 6.4, 12.6, 1.15, { block: 0.4, sw: 1.4, sd: 0.3 });
+  prop('barriers.png', 8.8, 12.6, 1.15, { block: 0.4, sw: 1.4, sd: 0.3 });
   prop('crates.png', 14.6, 4.6, 1.15, { block: 0.5 });
 
-  // string lights between lamp posts (painted sagging strand)
-  function hangLights(x, z, h = 3.4) {
-    const g = new THREE.Group();
-    g.position.set(x, 4.4, z);
-    const spr = isoSprite(loadSpr('string_lights.png'), h, { parent: g, cy: 0.5, y: 0, order: 8, additive: false });
-    spr.center.set(0.5, 0.5);
-    spr.userData.keepLit = true;
-    spr.userData.tintable = false;
-    scene.add(g);
-    world.isoSprites.push(spr);
-    (world.hangSpr || (world.hangSpr = [])).push(spr, g);
-    // glow overlay
-    const gl = isoSprite(loadSpr('glow_warm.png'), 2.2, { parent: g, cy: 0.5, y: 0, additive: true, order: 9, tintable: false });
-    gl.center.set(0.5, 0.5);
-    gl.material.opacity = 0;
-    nightLights.push({ bulb: gl, bulbMat: gl.material, baseInt: 1, color: 0xffc070 });
-  }
-  hangLights(-8.5, 13.6, 3.8);
-  hangLights(8.5, 13.6, 3.8);
-  hangLights(0, -15.2, 4.2);
-  hangLights(-12, -8, 3.6);
-  hangLights(12, 2.5, 3.6);
 }
 
 
@@ -898,7 +882,7 @@ function padOnTarget(pad, x, z, heading) {
   const ah = Math.abs(angDiff(heading, pad.heading));
   const ah2 = Math.abs(angDiff(heading, pad.heading + Math.PI));
   const ang = Math.min(ah, ah2);
-  return { dist, ang, ok: dist < 1.65 && ang < 0.32 };
+  return { dist, ang, ok: dist < 1.35 && ang < 0.34 };
 }
 
 function footprintBlocksPath(kind) {
@@ -1431,20 +1415,20 @@ function buildFerris(x, z, heading) {
   const day0 = loadSpr('ferris_00.png');
   const day1 = loadSpr('ferris_01.png');
   const night = loadSpr('ferris_night.png');
-  const spr = isoSprite(day0, 13.2, { parent: g, order: 5, nightMap: night });
+  const spr = isoSprite(day0, 13.2 * RIDE_SCALE, { parent: g, order: 5, nightMap: night });
   spr.userData.day0 = day0;
   spr.userData.day1 = day1;
   spr.userData.keepLit = true;
-  lightPool(loadSpr('pool_warm.png'), 16, 12, scene, x, z, 0.045);
-  lightPool(loadSpr('pool_ruby.png'), 10, 8, scene, x + 0.6, z - 0.4, 0.046);
-  const glow = isoSprite(loadSpr('glow_warm.png'), 10, { parent: g, additive: true, cy: 0.45, y: 6.2, order: 6, tintable: false });
+  lightPool(loadSpr('pool_warm.png'), 16 * RIDE_SCALE, 12 * RIDE_SCALE, scene, x, z, 0.045);
+  lightPool(loadSpr('pool_ruby.png'), 10 * RIDE_SCALE, 8 * RIDE_SCALE, scene, x + 0.6 * RIDE_SCALE, z - 0.4 * RIDE_SCALE, 0.046);
+  const glow = isoSprite(loadSpr('glow_warm.png'), 10 * RIDE_SCALE, { parent: g, additive: true, cy: 0.45, y: 6.2 * RIDE_SCALE, order: 6, tintable: false });
   glow.material.opacity = 0;
   glow.userData.tintable = false;
   glow.center.set(0.5, 0.45);
   let spin = 0;
   const rec = {
     group: g, spr, placed: false, glow,
-    footprint: { x, z, hw: 5.0, hd: 4.0 },
+    footprint: { x, z, hw: 5.0 * RIDE_SCALE, hd: 4.0 * RIDE_SCALE },
     gondolas: [],
     tick(dt) {
       if (!this.placed) return;
@@ -1459,7 +1443,7 @@ function buildFerris(x, z, heading) {
     },
     setLights(lampF) {
       glow.material.opacity = lampF * 0.65;
-      glow.scale.set(8 + lampF * 8, 8 + lampF * 8, 1);
+      glow.scale.set((8 + lampF * 8) * RIDE_SCALE, (8 + lampF * 8) * RIDE_SCALE, 1);
       swapDayNight(spr, lampF);
     }
   };
@@ -1474,12 +1458,12 @@ function buildFood(x, z, heading) {
   scene.add(g);
   const day = loadSpr('food_stand.png');
   const night = loadSpr('food_stand_night.png');
-  const spr = isoSprite(day, 5.6, { parent: g, order: 5, nightMap: night });
+  const spr = isoSprite(day, 5.6 * RIDE_SCALE, { parent: g, order: 5, nightMap: night });
   spr.userData.keepLit = true;
-  lightPool(loadSpr('pool_amber.png'), 8, 6.5, scene, x - 0.8, z + 0.6, 0.045);
+  lightPool(loadSpr('pool_amber.png'), 8 * RIDE_SCALE, 6.5 * RIDE_SCALE, scene, x - 0.8 * RIDE_SCALE, z + 0.6 * RIDE_SCALE, 0.045);
   const rec = {
     group: g, spr, placed: false,
-    footprint: { x, z, hw: 2.5, hd: 2.2 },
+    footprint: { x, z, hw: 2.5 * RIDE_SCALE, hd: 2.2 * RIDE_SCALE },
     tick() {},
     setLights(lampF) { swapDayNight(spr, lampF); }
   };
@@ -1494,15 +1478,15 @@ function buildBooth(x, z, heading) {
   scene.add(g);
   const day = loadSpr('ring_booth.png');
   const night = loadSpr('ring_booth_night.png');
-  const spr = isoSprite(day, 5.8, { parent: g, order: 5, nightMap: night });
+  const spr = isoSprite(day, 5.8 * RIDE_SCALE, { parent: g, order: 5, nightMap: night });
   spr.userData.keepLit = true;
-  const close = isoSprite(loadSpr('booth_close.png'), 4.8, { parent: g, order: 8 });
+  const close = isoSprite(loadSpr('booth_close.png'), 4.2, { parent: g, order: 8 });
   close.visible = false;
   close.userData.keepLit = true;
-  lightPool(loadSpr('pool_warm.png'), 7.5, 6, scene, x - 0.8, z + 0.8, 0.045);
+  lightPool(loadSpr('pool_warm.png'), 7.5 * RIDE_SCALE, 6 * RIDE_SCALE, scene, x - 0.8 * RIDE_SCALE, z + 0.8 * RIDE_SCALE, 0.045);
   const rec = {
     group: g, spr, close, placed: false,
-    footprint: { x, z, hw: 2.4, hd: 2.1 },
+    footprint: { x, z, hw: 2.4 * RIDE_SCALE, hd: 2.1 * RIDE_SCALE },
     tick() {},
     setLights(lampF) { swapDayNight(spr, lampF); }
   };
@@ -2020,6 +2004,7 @@ function serialize() {
     cash: G.cash, tickets: G.tickets, hour: G.hour, day: G.day,
     muted: G.muted, assist: G.assist,
     placed: { ...G.placed }, currentJob: G.currentJob, hooked: G.hooked, open: G.open,
+    scale: VEHICLE_SCALE,
     truck: t ? { x: t.x, z: t.z, heading: t.heading } : null,
     trailer: tr && tr.group.visible ? { kind: tr.kind, x: tr.x, z: tr.z, heading: tr.heading } : null,
     footprints: ['ferris', 'food', 'booth'].reduce((o, k) => {
@@ -2033,8 +2018,11 @@ function save() {
 }
 function loadSave() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_KEY_LEGACY);
-    return raw ? JSON.parse(raw) : null;
+    for (const k of [SAVE_KEY, ...SAVE_KEYS_LEGACY]) {
+      const raw = localStorage.getItem(k);
+      if (raw) return JSON.parse(raw);
+    }
+    return null;
   } catch (e) { return null; }
 }
 
@@ -2068,7 +2056,7 @@ function newGame() {
   G.cash = 0;
   G.tickets = 0;
   G.follow = true;
-  G.zoom = 16;
+  G.zoom = DEFAULT_ZOOM;
   resetRidesHidden();
   while (crowds.length) { scene.remove(crowds.pop().group); }
   spawnNextTrailer('ferris');
@@ -2152,7 +2140,7 @@ function showTitle(force) {
   // attract: dusk, everything set up
   G.hour = 18.55;
   G.follow = false;
-  G.zoom = 12.0;
+  G.zoom = 10.5;
   G.pan.set(-5.5, 0, 2.4);
   resetRidesHidden();
   placeRide('ferris', true);
@@ -2462,7 +2450,14 @@ function exposeDebug() {
       };
     },
 
-    SAFE_SPAWN, spawnTruckSafe, evictIfStuck, resetTruckToEntrance, vehicleIsStuck, collideAt, input, vehicle,
+    SAFE_SPAWN, GATE_HALF, VEHICLE_SCALE, RIDE_SCALE, DEFAULT_ZOOM, spawnTruckSafe, evictIfStuck, resetTruckToEntrance, vehicleIsStuck, collideAt, input, vehicle, padOnTarget,
+    checkPad(kind) {
+      const tr = vehicle.trailer;
+      const pad = world.pads[kind];
+      if (!tr || !pad) return null;
+      return Object.assign({ pad: { x: pad.x, z: pad.z, heading: pad.heading, w: pad.w, d: pad.d } }, padOnTarget(pad, tr.x, tr.z, tr.heading));
+    },
+    world,
     truckPose() {
       const t = vehicle.truck;
       const tr = vehicle.trailer;
@@ -2483,7 +2478,7 @@ function exposeDebug() {
     poseDayLot() {
       newGame(); G.day = 1;
       G.hour = 15.0; setAtmosphere(G.hour);
-      hideTitle(); G.follow = false; G.zoom = 15; G.pan.set(-1, 0, 6.5); applyCamera();
+      hideTitle(); G.follow = false; G.zoom = 11.8; G.pan.set(-1, 0, 6.5); applyCamera();
       setHint('Back the Ferris-wheel trailer onto the west pad. Mind the jackknife.');
       updateHUD();
     },
@@ -2496,7 +2491,7 @@ function exposeDebug() {
       G.hooked = true;
       vehicle.trailer.heading = t.heading - 0.55;
       placeTrailerOnHitch();
-      hideTitle(); G.follow = false; G.zoom = 11; G.pan.set(-7, 0, -3); applyCamera();
+      hideTitle(); G.follow = false; G.zoom = 8.6; G.pan.set(-7, 0, -3); applyCamera();
       G.day = 1; setHint('Straighten out — a jackknife means pull forward.');
       updateHUD();
     },
@@ -2508,7 +2503,7 @@ function exposeDebug() {
       rides.ferris.group.position.set(pad.x, 0, pad.z);
       G.currentJob = 'food';
       G.hour = 16.2; setAtmosphere(G.hour);
-      hideTitle(); G.follow = false; G.zoom = 11.5; G.pan.set(-8, 0, -3); applyCamera();
+      hideTitle(); G.follow = false; G.zoom = 9.0; G.pan.set(-8, 0, -3); applyCamera();
       G.open = true; G.day = 1;
       setHint('Ferris wheel is up. Crowds are coming. Keep the midway clear.');
       G.cash = 42; G.tickets = 4;
@@ -2524,7 +2519,7 @@ function exposeDebug() {
       const t = vehicle.truck; t.x = 2; t.z = 10; t.heading = -0.4;
       G.hour = 20.2; setAtmosphere(G.hour);
       G.open = true; G.currentJob = 'done'; G.day = 1;
-      hideTitle(); G.follow = false; G.zoom = 13.5; G.pan.set(-2.5, 0, 0.5); applyCamera();
+      hideTitle(); G.follow = false; G.zoom = 10.4; G.pan.set(-2.5, 0, 0.5); applyCamera();
       setHint('Night on the lot. Tap the ring-toss booth to play.');
       G.cash = 86; G.tickets = 14;
       for (let i = 0; i < 24; i++) spawnGuest();
@@ -2539,7 +2534,7 @@ function exposeDebug() {
       const t = vehicle.truck; t.x = 4; t.z = 12; t.heading = -0.6;
       G.hour = 18.45; setAtmosphere(G.hour);
       G.open = true; G.currentJob = 'done'; G.day = 1;
-      hideTitle(); G.follow = false; G.zoom = 12.2; G.pan.set(-3, 0, 1); applyCamera();
+      hideTitle(); G.follow = false; G.zoom = 9.5; G.pan.set(-3, 0, 1); applyCamera();
       setHint('Golden hour on the lot.');
       G.cash = 64; G.tickets = 9;
       for (let i = 0; i < 20; i++) spawnGuest();

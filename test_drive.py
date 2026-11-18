@@ -18,7 +18,7 @@ URL = f"http://127.0.0.1:{PORT}/index.html"
 
 # Old live save key + a truck planted on the Ferris pad.
 LEGACY_KEY = "wm.lights-on-the-lot.v1"
-NEW_KEY = "wm.lights-on-the-lot.v2"
+NEW_KEY = "wm.lights-on-the-lot.v3"
 FERRIS = {"x": -11.2, "z": -3.0}
 
 failures = []
@@ -170,6 +170,7 @@ def plant_legacy_ferris_save(page):
             trailer: { kind: 'food', x: 10, z: 21.5, heading: -Math.PI / 2 },
             footprints: { ferris: { x: ferris.x, z: ferris.z, rot: Math.PI / 2 } }
           };
+          localStorage.removeItem('wm.lights-on-the-lot.v3');
           localStorage.removeItem('wm.lights-on-the-lot.v2');
           localStorage.setItem(key, JSON.stringify(s));
         }""",
