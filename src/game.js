@@ -2,6 +2,9 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { RGBELoader } from '../vendor/addons/RGBELoader.js';
 import { GLTFLoader } from '../vendor/addons/GLTFLoader.js';
+import { KTX2Loader } from '../vendor/addons/KTX2Loader.js';
+import { MeshoptDecoder } from '../vendor/addons/meshopt_decoder.module.js';
+import { clone as cloneSkinned } from '../vendor/addons/SkeletonUtils.js';
 
 const SAVE_KEY = 'wm.lights-on-the-lot.v4';
 const TILE = 2;
@@ -150,7 +153,61 @@ const CATALOG = {
   expand:    { id:'expand', name:'Expand Lot', tab:'paths', cost:250, income:0, cap:0, unlock:1, w:0, d:0, model:null, icon:'path', special:'expand' }
 };
 const CATALOG_ORDER = ['ferris','superloop','carousel','tilt','bumper','corndog','funnelcake','cotton','lemonade','popcorn','turkey','pizza','ringtoss','path','expand'];
+
 const EXPAND_COSTS = [250, 500, 900, 1500];
+
+const TEVY = 'assets/models/tevy/';
+const ART = {
+  path:      { procedural: 'path' },
+  ferris:    { model: 'tevy/ferris-wheel', scale: 0.28, axis: 'z', nightColor: 0xffc878, nightY: 4.8 },
+  superloop: { model: 'tevy/coaster-loop', scale: 0.46, train: 'tevy/coaster-train', nightColor: 0x66ffaa, nightY: 3.6 },
+  carousel:  { model: 'tevy/carousel', scale: 0.42, nightColor: 0xffd28a, nightY: 3.2 },
+  tilt:      { model: 'ride_tilt', scale: 1.0, nightColor: 0xff9a4a, nightY: 2.2 },
+  bumper:    { model: 'tevy/bumper-cars', scale: 0.30, nightColor: 0x7ec8ff, nightY: 2.4 },
+  corndog:   { parts: [
+    { model: 'tevy/hot-dog-cart', scale: 1.15 },
+    { model: 'tevy/chalkboard-sign', x: 1.05, z: 1.05, ry: -0.25, scale: 1, sign: 'corndog' },
+    { model: 'tevy/food-stool', x: -0.95, z: 0.7, ry: 0.4, scale: 1 }
+  ], steam: [0, 1.7, -0.15], nightColor: 0xffc070 },
+  funnelcake:{ parts: [
+    { model: 'tevy/bakers-awning-stall', scale: 1.2, ry: Math.PI },
+    { model: 'tevy/donut-glazed', x: -0.25, y: 1.12, z: 0.45, scale: 1.6 },
+    { model: 'tevy/donut-pink', x: 0.28, y: 1.12, z: 0.35, scale: 1.4 },
+    { model: 'tevy/chalkboard-sign', x: 1.05, z: 1.15, ry: 0.3, scale: 1, sign: 'funnelcake' }
+  ], steam: [0, 1.8, 0.2], nightColor: 0xffd8a0 },
+  cotton:    { parts: [
+    { model: 'tevy/street-food-stall-cart', scale: 1.05, ry: Math.PI },
+    { model: 'tevy/red-lantern', x: 0, y: 0.15, z: 0.15, scale: 0.85 },
+    { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.0, ry: -0.2, scale: 1, sign: 'cotton' }
+  ], steam: [0, 2.0, 0], nightColor: 0xff8ac8 },
+  lemonade:  { parts: [
+    { model: 'tevy/bakers-awning-stall', scale: 1.15, ry: Math.PI },
+    { model: 'tevy/cooler-box', x: 0.85, z: 0.55, ry: 0.4, scale: 0.9 },
+    { model: 'tevy/soda-crate', x: -0.8, z: 0.5, scale: 0.85 },
+    { model: 'tevy/chalkboard-sign', x: -1.1, z: 1.15, ry: 0.2, scale: 1, sign: 'lemonade' }
+  ], nightColor: 0xfff27a },
+  popcorn:   { parts: [
+    { model: 'tevy/street-food-stall-cart', scale: 1.05 },
+    { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.05, ry: -0.15, scale: 1, sign: 'popcorn' },
+    { model: 'tevy/food-stool', x: -1.0, z: 0.55, scale: 1 }
+  ], steam: [0, 2.0, 0.1], nightColor: 0xffe08a },
+  turkey:    { parts: [
+    { model: 'tevy/street-food-stall-cart', scale: 1.08, ry: Math.PI * 0.5 },
+    { model: 'tevy/wooden-barrel', x: -1.15, z: 0.4, scale: 0.7 },
+    { model: 'tevy/chalkboard-sign', x: 1.2, z: 1.0, ry: -0.3, scale: 1, sign: 'turkey' }
+  ], steam: [0, 1.9, 0], nightColor: 0xff8a50 },
+  pizza:     { parts: [
+    { model: 'tevy/pizza-oven', x: -0.55, scale: 0.95 },
+    { model: 'tevy/pepperoni-pizza', x: 0.55, y: 1.05, z: 0.25, scale: 1.8 },
+    { model: 'tevy/pizza-peel', x: 0.85, y: 1.02, z: -0.1, ry: 0.6, scale: 1 },
+    { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.15, ry: 0.25, scale: 1, sign: 'pizza' }
+  ], nightColor: 0xff7040 },
+  ringtoss:  { parts: [
+    { model: 'tevy/cloth-merchants-stall', scale: 1.25, ry: Math.PI },
+    { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.05, ry: -0.2, scale: 1, sign: 'ringtoss' }
+  ], nightColor: 0x7ad0ff }
+};
+
 
 const G = {
   mode: 'title', hour: 14, timeScale: 1 / 16,
@@ -162,7 +219,7 @@ const G = {
 
 const manager = new THREE.LoadingManager();
 const loader = new THREE.TextureLoader(manager);
-const assets = { tex: {}, spr: {}, ui: {}, models: {} };
+const assets = { tex: {}, spr: {}, ui: {}, models: {}, clips: {} };
 const gltfLoader = new GLTFLoader(manager);
 const TEX_ANISO = 8;
 const M = {};
@@ -214,8 +271,12 @@ function loadUi(file) {
   assets.ui[file] = tex;
   return tex;
 }
+
 function loadModel(name, path) {
-  gltfLoader.load(path, (gltf) => { assets.models[name] = gltf.scene; }, undefined, (err) => console.error('GLB failed', name, path, err));
+  gltfLoader.load(path, (gltf) => {
+    assets.models[name] = gltf.scene;
+    if (gltf.animations && gltf.animations.length) assets.clips[name] = gltf.animations;
+  }, undefined, (err) => console.error('GLB failed', name, path, err));
 }
 
 const SPR_FILES = [
@@ -227,17 +288,69 @@ for (const ch of ['a','b','c']) {
   for (let i = 0; i < n; i++) SPR_FILES.push(`person_${ch}_${i}.png`, `person_${ch}_${i}f.png`);
 }
 
+
 function preloadArt() {
+  const ktx2 = new KTX2Loader(manager).setTranscoderPath('vendor/addons/basis/').detectSupport(renderer);
+  gltfLoader.setKTX2Loader(ktx2);
+  gltfLoader.setMeshoptDecoder(MeshoptDecoder);
   for (const f of SPR_FILES) loadSpr(f);
   loadUi('coin.png');
   for (const k of CATALOG_ORDER) loadUi(CATALOG[k].icon + '.png');
-  const models = [
-    'ride_ferris','ride_superloop','ride_carousel','ride_tilt','ride_bumper',
-    'booth_ring','path_tile',
-    'vendor_corndog','vendor_funnelcake','vendor_cotton','vendor_lemonade',
-    'vendor_popcorn','vendor_turkey','vendor_pizza'
-  ];
-  for (const n of models) loadModel(n, `assets/models/${n}.glb`);
+  const models = {
+    'tevy/ferris-wheel': TEVY + 'ferris-wheel.glb',
+    'tevy/carousel': TEVY + 'carousel.glb',
+    'tevy/bumper-cars': TEVY + 'bumper-cars.glb',
+    'tevy/coaster-loop': TEVY + 'coaster-loop.glb',
+    'tevy/coaster-train': TEVY + 'coaster-train.glb',
+    'tevy/hot-dog-cart': TEVY + 'hot-dog-cart.glb',
+    'tevy/street-food-stall-cart': TEVY + 'street-food-stall-cart.glb',
+    'tevy/bakers-awning-stall': TEVY + 'bakers-awning-stall.glb',
+    'tevy/street-food-counter': TEVY + 'street-food-counter.glb',
+    'tevy/pizza-oven': TEVY + 'pizza-oven.glb',
+    'tevy/pepperoni-pizza': TEVY + 'pepperoni-pizza.glb',
+    'tevy/cloth-merchants-stall': TEVY + 'cloth-merchants-stall.glb',
+    'tevy/newsstand-kiosk': TEVY + 'newsstand-kiosk.glb',
+    'tevy/chalkboard-sign': TEVY + 'chalkboard-sign.glb',
+    'tevy/cooler-box': TEVY + 'cooler-box.glb',
+    'tevy/soda-crate': TEVY + 'soda-crate.glb',
+    'tevy/donut-glazed': TEVY + 'donut-glazed.glb',
+    'tevy/donut-chocolate': TEVY + 'donut-chocolate.glb',
+    'tevy/donut-pink': TEVY + 'donut-pink.glb',
+    'tevy/red-lantern': TEVY + 'red-lantern.glb',
+    'tevy/food-stool': TEVY + 'food-stool.glb',
+    'tevy/pizza-peel': TEVY + 'pizza-peel.glb',
+    'tevy/park-bench': TEVY + 'park-bench.glb',
+    'tevy/string-lights': TEVY + 'string-lights.glb',
+    'tevy/street-lamp': TEVY + 'street-lamp.glb',
+    'tevy/city-street-lamp': TEVY + 'city-street-lamp.glb',
+    'tevy/waste-bin': TEVY + 'waste-bin.glb',
+    'tevy/crowd-barrier': TEVY + 'crowd-barrier.glb',
+    'tevy/concrete-planter': TEVY + 'concrete-planter.glb',
+    'tevy/geranium': TEVY + 'geranium.glb',
+    'tevy/picnic-table': TEVY + 'picnic-table.glb',
+    'tevy/corner-flag': TEVY + 'corner-flag.glb',
+    'tevy/hanging-banner': TEVY + 'hanging-banner.glb',
+    'tevy/bollard': TEVY + 'bollard.glb',
+    'tevy/hedge': TEVY + 'hedge.glb',
+    'tevy/ginkgo-tree': TEVY + 'ginkgo-tree.glb',
+    'tevy/young-spruce': TEVY + 'young-spruce.glb',
+    'tevy/rope-barrier': TEVY + 'rope-barrier.glb',
+    'tevy/potted-pine': TEVY + 'potted-pine.glb',
+    'tevy/wooden-barrel': TEVY + 'wooden-barrel.glb',
+    'tevy/casual-walker': TEVY + 'casual-walker.glb',
+    'tevy/dog-walker': TEVY + 'dog-walker.glb',
+    'tevy/road-worker': TEVY + 'road-worker.glb',
+    'ride_tilt': 'assets/models/ride_tilt.glb',
+    'prop_balloons': 'assets/models/prop_balloons.glb',
+    'prop_bunting': 'assets/models/prop_bunting.glb'
+  };
+  for (const [n, p] of Object.entries(models)) loadModel(n, p);
+  for (const k of ['corndog','funnelcake','cotton','lemonade','popcorn','turkey','pizza','ringtoss','tickets']) {
+    const t = loader.load(`assets/textures/signs/${k}.jpg`);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = TEX_ANISO;
+    assets.ui['sign_' + k] = t;
+  }
   const rgbe = new RGBELoader();
   const bakeWhenReady = (which, tex) => {
     assets[which] = tex;
@@ -283,8 +396,10 @@ function lightPool(map, w, d, parent, x, z, y = 0.04) {
   return m;
 }
 
+
 function buildMaterials() {
-  M.asphalt = pbr('asphalt', { repeat: 8, roughness: 0.95, normalScale: 1.1, color: 0xc8c8c8 });
+  M.asphalt = pbr('asphalt_lines', { repeat: 6, roughness: 0.95, normalScale: 1.15, color: 0xffffff });
+  M.midway = pbr('midway', { repeat: 2, roughness: 0.92, normalScale: 1.2, color: 0xffffff });
   M.grass = pbr('grass', { repeat: 12, roughness: 0.95, normalScale: 1.4, color: 0xe8f0d8 });
   M.concrete = pbr('concrete', { repeat: 3, roughness: 0.9, normalScale: 0.8 });
   M.wood = pbr('wood', { repeat: 2, roughness: 0.85, normalScale: 1.0 });
@@ -293,6 +408,7 @@ function buildMaterials() {
   M.shadowBlob = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false });
   M.ghostOk = new THREE.MeshStandardMaterial({ color: 0x44cc66, transparent: true, opacity: 0.38, depthWrite: false, roughness: 0.6 });
   M.ghostNo = new THREE.MeshStandardMaterial({ color: 0xcc3344, transparent: true, opacity: 0.4, depthWrite: false, roughness: 0.6 });
+  M.sign = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.0, envMapIntensity: 0.35 });
 }
 
 function mesh(geo, mat, { x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx, sy, sz, parent = scene, cast = true, recv = true } = {}) {
@@ -357,7 +473,8 @@ function buildSkyAndLights() {
   lights.hemi = new THREE.HemisphereLight(0xffe2c4, 0x3a2a1c, 0.9); scene.add(lights.hemi);
   lights.sun = new THREE.DirectionalLight(0xffd7a0, 2.8);
   lights.sun.castShadow = true;
-  lights.sun.shadow.mapSize.set(2048, 2048);
+  const mobile = window.innerWidth < 900 || window.innerHeight < 500;
+  lights.sun.shadow.mapSize.set(mobile ? 1024 : 1536, mobile ? 1024 : 1536);
   lights.sun.shadow.bias = -0.00035;
   lights.sun.shadow.normalBias = 0.06;
   const s = lights.sun.shadow.camera;
@@ -501,10 +618,11 @@ function buildFenceRun(x0, x1, z, gap) {
   }
 }
 
+
 function rebuildLotShell() {
   clearLotShell();
   const S = lotSize();
-  const grass = mesh(new THREE.PlaneGeometry(90, 90), M.grass, { y: 0, rx: -Math.PI / 2, recv: true, cast: false });
+  const grass = mesh(new THREE.PlaneGeometry(110, 110), M.grass, { y: 0, rx: -Math.PI / 2, recv: true, cast: false });
   world.shell.push(grass);
   const lot = mesh(new THREE.PlaneGeometry(S, S), M.asphalt, { y: 0.01, rx: -Math.PI / 2, recv: true, cast: false });
   world.lotMesh = lot; world.shell.push(lot);
@@ -520,34 +638,85 @@ function rebuildLotShell() {
     addCurb(-(gapW / 2 + side / 2), half + 0.2, side, 0.4);
     addCurb( (gapW / 2 + side / 2), half + 0.2, side, 0.4);
   }
-  buildFenceRun(-half, half, -half, null);
-  buildFenceRun(-half, half, half, { x0: -gapW / 2, x1: gapW / 2 });
-  for (const x of [-half, half]) {
-    for (let z = -half; z <= half + 0.01; z += 1.6) {
-      world.shell.push(mesh(new THREE.CylinderGeometry(0.07, 0.09, 1.15, 8), M.wood, { x, y: 0.58, z }));
-    }
-    for (const y of [0.35, 0.75]) {
-      world.shell.push(mesh(new THREE.BoxGeometry(0.05, 0.06, S), M.metal, { x, y, z: 0 }));
+
+  // 3D crowd barriers along the fence line, with a gate opening to the south
+  const placeDec = (name, x, z, scale = 1, ry = 0, y = 0) => {
+    const g = cloneModel(name, scale);
+    if (!g) return null;
+    g.position.set(x, y, z);
+    g.rotation.y = ry;
+    scene.add(g);
+    world.shell.push(g);
+    return g;
+  };
+  const step = 4.4;
+  for (const zWall of [-half, half]) {
+    for (let x = -half + 0.4; x <= half - 0.4; x += step) {
+      if (zWall === half && Math.abs(x) < gapW / 2 + 0.4) continue;
+      placeDec('tevy/crowd-barrier', x, zWall, 0.95, zWall > 0 ? Math.PI : 0);
     }
   }
-  const kx = -gapW / 2 - 1.6, kz = half - 0.2;
-  const kiosk = isoSprite(loadSpr('kiosk.png'), 2.2, { order: 4 });
-  kiosk.userData.keepLit = true;
-  kiosk.position.set(kx, 0, kz);
-  scene.add(kiosk); world.isoSprites.push(kiosk); world.shell.push(kiosk);
-  const kl = addNightLight(kx, 2.0, kz, 0xffd8a0, 2.0, 7, 2, false); kl._shell = true;
-  lightPool(loadSpr('pool_warm.png'), 4, 3.2, scene, kx, kz, 0.045);
+  for (const xWall of [-half, half]) {
+    for (let z = -half + 0.4; z <= half - 0.4; z += step) {
+      placeDec('tevy/crowd-barrier', xWall, z, 0.95, xWall > 0 ? -Math.PI / 2 : Math.PI / 2);
+    }
+  }
+
+  // Entrance: ticket kiosk, rope, flags, bollards
+  const kx = -gapW / 2 - 2.1, kz = half - 0.15;
+  placeDec('tevy/newsstand-kiosk', kx, kz, 0.85, Math.PI);
+  const sign = placeDec('tevy/chalkboard-sign', kx + 1.15, kz + 0.7, 1.0, 0.15);
+  if (sign) addSignBoard(sign, 'tickets');
+  placeDec('tevy/rope-barrier', gapW * 0.15, half + 0.15, 1.0, 0);
+  placeDec('tevy/bollard', -gapW / 2 + 0.2, half + 0.35, 1.0, 0);
+  placeDec('tevy/bollard',  gapW / 2 - 0.2, half + 0.35, 1.0, 0);
+  placeDec('tevy/corner-flag', -gapW / 2 - 0.6, half + 0.2, 1.35, 0);
+  placeDec('tevy/corner-flag',  gapW / 2 + 0.6, half + 0.2, 1.35, 0.2);
+  const kl = addNightLight(kx, 2.15, kz, 0xffd8a0, 2.4, 8, 2, false); kl._shell = true;
+  lightPool(loadSpr('pool_warm.png'), 4.2, 3.4, scene, kx, kz, 0.045);
   nightLights[nightLights.length - 1]._shell = true;
 
-  const corners = [[-half + 0.6, -half + 0.6, true], [half - 0.6, -half + 0.6, false],
-                   [-half + 0.6, half - 0.6, false], [half - 0.6, half - 0.6, true]];
-  for (const [x, z, real] of corners) {
-    world.shell.push(mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.4, 8), M.metal, { x, y: 2.2, z }));
-    world.shell.push(mesh(new THREE.BoxGeometry(0.6, 0.07, 0.18), M.metal, { x, y: 4.4, z }));
-    const rec = addNightLight(x, 4.25, z, 0xffc888, 5.0, 12, 2, !!real);
+  // Corner lamps (real city/street lamps, scaled to carnival height)
+  const corners = [[-half + 1.1, -half + 1.1, true], [half - 1.1, -half + 1.1, false],
+                   [-half + 1.1, half - 1.1, false], [half - 1.1, half - 1.1, true]];
+  corners.forEach(([x, z, real], i) => {
+    placeDec('tevy/street-lamp', x, z, 0.55, i * 0.7);
+    const rec = addNightLight(x, 4.3, z, 0xffc888, 6.0, 14, 2, !!real);
     rec._shell = true;
-    lightPool(loadSpr('pool_warm.png'), 6, 5, scene, x, z, 0.04);
+    lightPool(loadSpr('pool_warm.png'), 7, 6, scene, x, z, 0.04);
     nightLights[nightLights.length - 1]._shell = true;
+    placeDec('tevy/potted-pine', x + (x > 0 ? -1.1 : 1.1), z + (z > 0 ? -1.1 : 1.1), 1.1, i);
+  });
+
+  // Interior lot edge decor: benches, bins, planters, bunting stands, balloon clusters, flags
+  const inner = half - 1.4;
+  const edgeDecor = [
+    ['tevy/park-bench', -inner + 1.5, -inner, 1, 0],
+    ['tevy/park-bench',  inner - 1.5, -inner, 1, 0],
+    ['tevy/park-bench', -inner, 0.5, 1, Math.PI / 2],
+    ['tevy/park-bench',  inner, -0.5, 1, -Math.PI / 2],
+    ['tevy/waste-bin', -inner + 3.2, -inner + 0.2, 1, 0],
+    ['tevy/waste-bin',  inner - 3.2, -inner + 0.2, 1, 0.4],
+    ['tevy/geranium', -inner + 0.3, -2.5, 1.1, 0.2],
+    ['tevy/geranium',  inner - 0.3, 2.2, 1.1, 0.8],
+    ['tevy/concrete-planter', -inner + 0.4, 3.4, 0.45, 0],
+    ['tevy/concrete-planter',  inner - 0.4, -3.4, 0.45, 0.3],
+    ['prop_balloons', -inner + 2.2, inner - 1.6, 1.0, 0.2],
+    ['prop_balloons',  inner - 2.4, inner - 1.4, 1.05, 1.1],
+    ['prop_balloons', -2.2, -inner + 0.8, 0.95, 0.5],
+    ['prop_bunting', 0, -inner + 0.15, 1.0, 0],
+    ['prop_bunting', -inner + 0.15, -2, 1.0, Math.PI / 2],
+    ['prop_bunting',  inner - 0.15, 2, 1.0, Math.PI / 2],
+    ['tevy/hanging-banner', -inner + 0.2, inner - 2.4, 0.85, Math.PI / 2],
+    ['tevy/corner-flag', -inner, -inner, 1.4, 0.4],
+    ['tevy/corner-flag',  inner, -inner, 1.4, -0.3],
+    ['tevy/picnic-table', inner - 2.6, 0.8, 0.9, 0.2]
+  ];
+  for (const [n, x, z, s, ry] of edgeDecor) placeDec(n, x, z, s, ry);
+  // festoon lights on stands along the north fence (not strung across the lot)
+  for (const x of [-inner + 3, 0, inner - 3]) {
+    const sl = placeDec('tevy/string-lights', x, -inner + 0.35, 0.9, 0, 1.8);
+    if (sl) sl.rotation.z = 0.05;
   }
 
   if (world.grid) scene.remove(world.grid);
@@ -565,31 +734,107 @@ function rebuildLotShell() {
   sc.left = -ext; sc.right = ext; sc.top = ext; sc.bottom = -ext; sc.updateProjectionMatrix();
 }
 
+
 function plantDecor() {
+  for (const t of world.trees || []) scene.remove(t);
+  world.trees = [];
   const spots = [
-    [-22, -8, 1.15], [-26, 2, 0.95], [-24, 14, 1.05],
-    [22, -10, 1.2], [26, 1, 0.9], [24, 14, 1.1],
-    [-16, -22, 1.3], [0, -24, 1.4], [16, -22, 0.95],
-    [-28, 18, 1.0], [28, 18, 1.15], [8, 24, 1.0], [-8, 24, 0.9]
+    [-24, -10, 0.85, 0.2], [-28, 2, 0.7, 1.1], [-25, 16, 0.8, 0.4],
+    [24, -12, 0.9, 2.0], [28, 2, 0.72, 0.6], [25, 16, 0.82, 1.4],
+    [-18, -26, 0.95, 0.3], [0, -28, 1.05, 0.9], [18, -26, 0.78, 2.2],
+    [-30, 20, 0.7, 0.1], [30, 20, 0.88, 1.7], [10, 28, 0.75, 0.5], [-10, 28, 0.8, 2.4],
+    [-22, -20, 0.55, 0.0, 'tevy/young-spruce'], [22, -20, 0.6, 0.8, 'tevy/young-spruce'],
+    [-32, 8, 0.5, 1.2, 'tevy/young-spruce'], [32, -6, 0.55, 0.4, 'tevy/young-spruce']
   ];
-  for (const [x, z, s] of spots) {
-    const g = new THREE.Group(); g.position.set(x, 0, z);
-    const spr = isoSprite(loadSpr('tree_oak.png'), 7.4 * s, { parent: g, order: 3, alphaTest: 0.25 });
-    addBlobShadow(g, 1.1 * s, 1.1 * s, 0.32);
-    scene.add(g); world.trees.push(g); world.isoSprites.push(spr);
+  for (const rec of spots) {
+    const [x, z, s, ry] = rec;
+    const name = rec[4] || 'tevy/ginkgo-tree';
+    const g = cloneModel(name, s);
+    if (!g) continue;
+    g.position.set(x, 0, z);
+    g.rotation.y = ry;
+    addBlobShadow(g, 1.6 * s, 1.6 * s, 0.3);
+    scene.add(g);
+    world.trees.push(g);
+  }
+  // hedges just outside the starting lot, will still read after expand
+  for (const [x, z, ry] of [[-20, 0, Math.PI / 2], [20, 0, Math.PI / 2], [0, -20, 0]]) {
+    const h = cloneModel('tevy/hedge', 1.1);
+    if (!h) continue;
+    h.position.set(x, 0, z); h.rotation.y = ry;
+    scene.add(h); world.trees.push(h);
   }
 }
 
-function cloneModel(name) {
+
+
+function addSignBoard(parent, key, off = { x: 0, y: 0.62, z: 0.26 }) {
+  const tex = assets.ui['sign_' + key];
+  if (!tex) return;
+  const mat = M.sign.clone();
+  mat.map = tex;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.82), mat);
+  m.position.set(off.x || 0, off.y ?? 0.62, off.z ?? 0.26);
+  m.castShadow = false;
+  parent.add(m);
+  return m;
+}
+
+function buildArt(kind) {
+  const spec = ART[kind];
+  const cat = CATALOG[kind];
+  if (!spec || spec.procedural === 'path') {
+    const g = new THREE.Group();
+    const tile = mesh(new THREE.BoxGeometry(TILE * 0.96, 0.07, TILE * 0.96), M.midway, {
+      y: 0.04, parent: g, cast: false, recv: true
+    });
+    mesh(new THREE.BoxGeometry(TILE * 0.98, 0.03, TILE * 0.98), M.concrete, {
+      y: 0.015, parent: g, cast: false, recv: true
+    });
+    return g;
+  }
+  const root = new THREE.Group();
+  const parts = spec.parts;
+  if (parts) {
+    for (const p of parts) {
+      const m = cloneModel(p.model, p.scale ?? 1, { shadows: false, shareMaterials: true });
+      if (!m) continue;
+      m.position.set(p.x || 0, p.y || 0, p.z || 0);
+      m.rotation.y = p.ry || 0;
+      if (p.sign) addSignBoard(m, p.sign);
+      root.add(m);
+    }
+  } else if (spec.model) {
+    const isRide = ['ferris','superloop','carousel','tilt','bumper'].includes(kind);
+    const m = cloneModel(spec.model, spec.scale ?? 1, { shadows: isRide, shareMaterials: !isRide });
+    if (m) root.add(m);
+  }
+  if (spec.steam) {
+    const holder = new THREE.Group();
+    holder.name = 'steam';
+    holder.position.set(spec.steam[0], spec.steam[1], spec.steam[2]);
+    root.add(holder);
+  }
+  return root;
+}
+function cloneModel(name, scale = 1, opts = {}) {
   const src = assets.models[name];
   if (!src) return null;
-  const c = src.clone(true);
+  const share = opts.shareMaterials !== false;
+  const shadows = !!opts.shadows;
+  let skinned = false;
+  src.traverse((o) => { if (o.isSkinnedMesh) skinned = true; });
+  const c = skinned ? cloneSkinned(src) : src.clone(true);
   c.traverse((o) => {
     if (o.isMesh) {
-      o.castShadow = true; o.receiveShadow = true;
-      if (o.material) o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone();
+      o.castShadow = shadows;
+      o.receiveShadow = true;
+      if (!share && o.material) {
+        o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone();
+      }
     }
   });
+  if (scale && scale !== 1) c.scale.setScalar(scale);
   return c;
 }
 function footprintCenter(kind, cx, cz, rot) {
@@ -600,28 +845,71 @@ function footprintCenter(kind, cx, cz, rot) {
   return { x: (x / n) * TILE, z: (z / n) * TILE };
 }
 
+
 function hookParts(b, root) {
-  const parts = { bulbs: [], gondolas: [], horses: [], cars: [], steam: [], signs: [], wheel: null, arm: null, car: null, platform: null, canopy: null };
+  const parts = { bulbs: [], gondolas: [], horses: [], seats: [], cars: [], steam: [], signs: [], emi: [], wheel: null, arm: null, car: null, platform: null, canopy: null };
+  const axis = (ART[b.kind] && ART[b.kind].axis) || 'x';
+  parts.wheelAxis = axis;
   root.traverse((o) => {
     const n = o.name || '';
-    const role = o.userData && o.userData.role;
-    if (n === 'wheel' || role === 'wheel') parts.wheel = o;
-    if (n === 'arm' || role === 'arm') parts.arm = o;
-    if (n === 'car' || (role === 'car' && !n.startsWith('car_'))) parts.car = o;
-    if (n === 'platform' || role === 'platform') parts.platform = o;
-    if (n === 'canopy' || role === 'canopy') parts.canopy = o;
-    if (n.startsWith('gondola_') || role === 'gondola') parts.gondolas.push(o);
-    if (n.startsWith('bulb_') || role === 'bulb') parts.bulbs.push(o);
-    if (role === 'horse' || /^horse_\d/.test(n)) parts.horses.push(o);
-    if (/^car_\d/.test(n) || (role === 'car' && n.startsWith('car_'))) parts.cars.push(o);
-    if (n === 'steam' || role === 'steam') parts.steam.push(o);
-    if (n === 'sign' || role === 'sign') parts.signs.push(o);
+    if (n === 'wheel') parts.wheel = o;
+    if (n === 'arm' || (o.userData && o.userData.role === 'arm')) parts.arm = o;
+    if (n === 'car' && !/^car_\d/.test(n)) parts.car = o;
+    if (n === 'platform' || (o.userData && o.userData.role === 'platform')) parts.platform = o;
+    if (n === 'canopy') parts.canopy = o;
+    if (/^gondola_\d+$/.test(n)) parts.gondolas.push(o);
+    if (/^seat_(inner|outer)_\d+$/.test(n)) {
+      o.userData.baseY = o.position.y;
+      parts.seats.push(o);
+      parts.horses.push(o);
+    }
+    if (/^car_\d+$/.test(n)) parts.cars.push(o);
+    if (n === 'steam' || (o.userData && o.userData.role === 'steam')) parts.steam.push(o);
+    if (n === 'sign' || (o.userData && o.userData.role === 'sign')) parts.signs.push(o);
+    if (/bulb/i.test(n)) parts.bulbs.push(o);
+    if (o.isMesh && o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const mat of mats) {
+        if (mat && mat.emissive && (mat.emissive.r + mat.emissive.g + mat.emissive.b) > 0.05) parts.emi.push(mat);
+      }
+    }
   });
-  b.parts = parts;
+  if (b.kind === 'superloop' && !parts.arm) {
+    const rail = root.getObjectByName('loop_vertical_red') || root.getObjectByName('loop_vertical');
+    const host = (rail && rail.parent) ? rail.parent : root;
+    const arm = new THREE.Group();
+    arm.name = 'arm';
+    // The tevy loop lives in the XY plane, centered on the red rail node (~y=8.75, z=7).
+    if (rail) arm.position.copy(rail.position);
+    else arm.position.set(-1.59, 8.75, 6.99);
+    parts.armAxis = 'z';
+    const sc = (ART.superloop && ART.superloop.scale) || 0.46;
+    const train = cloneModel('tevy/coaster-train', 1, { shadows: true });
+    let car = null;
+    if (train) {
+      const srcCar = train.getObjectByName('car_1');
+      if (srcCar) {
+        const holder = new THREE.Group();
+        srcCar.parent.remove(srcCar);
+        holder.add(srcCar);
+        srcCar.position.set(0, 0, 0);
+        car = holder;
+      } else car = train;
+      // host is already scaled by ART.superloop.scale, so use unscaled loop radius (~8.2 m).
+      car.position.set(0, -8.15, 0);
+      arm.add(car);
+    }
+    host.add(arm);
+    parts.arm = arm;
+    parts.car = car;
+  }
   if (b.kind === 'bumper') {
+    const lim = 2.4;
     for (const c of parts.cars) {
-      c.userData.vx = (Math.random() * 2 - 1) * 1.4;
-      c.userData.vz = (Math.random() * 2 - 1) * 1.4;
+      c.userData.home = c.position.clone();
+      c.userData.vx = (Math.random() * 2 - 1) * 1.6;
+      c.userData.vz = (Math.random() * 2 - 1) * 1.6;
+      c.userData.lim = lim;
     }
   }
   for (const s of parts.steam) {
@@ -631,6 +919,15 @@ function hookParts(b, root) {
       spr.userData.keepLit = true;
       spr.userData.steamI = i;
     }
+  }
+  b.parts = parts;
+  const spec = ART[b.kind];
+  if (spec && spec.nightColor && b.kind !== 'path') {
+    const rec = addNightLight(0, spec.nightY || 2.4, 0, spec.nightColor, 3.2, 9, 2, false);
+    rec.bulb.position.set(0, spec.nightY || 2.4, 0);
+    b.group.add(rec.bulb);
+    if (rec.light) { rec.light.position.set(0, spec.nightY || 2.4, 0); b.group.add(rec.light); }
+    rec._building = b.id;
   }
 }
 
@@ -666,6 +963,7 @@ function makeCoinSprite(b) {
   return spr;
 }
 
+
 function placeBuilding(kind, cx, cz, rot = 0, opts = {}) {
   const cat = CATALOG[kind];
   if (!cat || cat.special) return null;
@@ -675,10 +973,9 @@ function placeBuilding(kind, cx, cz, rot = 0, opts = {}) {
   const group = new THREE.Group();
   group.position.set(mid.x, 0, mid.z);
   group.rotation.y = (rot % 4) * Math.PI / 2;
-  const model = cloneModel(cat.model);
-  if (model) {
-    group.add(model);
-  } else mesh(new THREE.BoxGeometry(cat.w * TILE * 0.8, 1.2, cat.d * TILE * 0.8), M.wood, { y: 0.6, parent: group });
+  const model = buildArt(kind);
+  if (model) group.add(model);
+  else mesh(new THREE.BoxGeometry(cat.w * TILE * 0.8, 1.2, cat.d * TILE * 0.8), M.wood, { y: 0.6, parent: group });
   addBlobShadow(group, cat.w * 0.7, cat.d * 0.7, 0.3);
   scene.add(group);
   const b = {
@@ -692,16 +989,22 @@ function placeBuilding(kind, cx, cz, rot = 0, opts = {}) {
   makeCoinSprite(b);
   if (kind !== 'path') {
     const col = (kind === 'ferris' || kind === 'superloop') ? 'pool_ruby.png' : (cat.tab === 'food' ? 'pool_amber.png' : 'pool_warm.png');
-    lightPool(loadSpr(col), cat.w * 1.6, cat.d * 1.6, group, 0, 0, 0.05);
+    lightPool(loadSpr(col), cat.w * 1.8, cat.d * 1.8, group, 0, 0, 0.05);
   }
   buildings.push(b);
   syncOccup(b, true);
   if (b.buildT > 0) group.scale.setScalar(0.08);
   return b;
 }
-
 function removeBuilding(b) {
   syncOccup(b, false);
+  for (let i = nightLights.length - 1; i >= 0; i--) {
+    if (nightLights[i]._building === b.id) {
+      if (nightLights[i].light && nightLights[i].light.parent) nightLights[i].light.parent.remove(nightLights[i].light);
+      if (nightLights[i].bulb && nightLights[i].bulb.parent) nightLights[i].bulb.parent.remove(nightLights[i].bulb);
+      nightLights.splice(i, 1);
+    }
+  }
   scene.remove(b.group);
   const i = buildings.indexOf(b);
   if (i >= 0) buildings.splice(i, 1);
@@ -857,25 +1160,132 @@ function doExpand() {
   return true;
 }
 
+
+
+function playGuest(g, name) {
+  if (!g.actions) return;
+  if (g.act === name) return;
+  const next = g.actions[name] || g.actions.idle || Object.values(g.actions)[0];
+  if (!next) return;
+  if (g.act && g.actions[g.act]) g.actions[g.act].fadeOut(0.2);
+  next.reset().fadeIn(0.2).play();
+  g.act = name;
+}
+
+function applySitPose(root, on) {
+  if (!root) return;
+  root.traverse((o) => {
+    const n = (o.name || '').toLowerCase();
+    if (!on) return;
+    if (n === 'hips') { if (o.userData.baseY == null) o.userData.baseY = o.position.y; o.position.y = o.userData.baseY - 0.28; o.rotation.x = 0.22; }
+    if (n.startsWith('thigh')) o.rotation.x = 1.25;
+    if (n.startsWith('calf')) o.rotation.x = -1.15;
+    if (n === 'spine' || n === 'spine1') o.rotation.x = 0.12;
+  });
+}
+
+function findOpenSeat(b) {
+  const p = b.parts || {};
+  const list = [];
+  if (p.gondolas && p.gondolas.length) list.push(...p.gondolas);
+  else if (p.seats && p.seats.length) list.push(...p.seats);
+  else if (p.cars && p.cars.length) list.push(...p.cars);
+  else if (p.car) list.push(p.car);
+  for (const s of list) if (!s.userData.taken) return s;
+  return null;
+}
+
+function boardRide(guest, b) {
+  const seat = findOpenSeat(b);
+  if (!seat) return false;
+  guest.ride = b;
+  guest.seat = seat;
+  guest.state = 'ride';
+  guest.wait = 7 + Math.random() * 5;
+  seat.userData.taken = guest;
+  seat.attach(guest.group);
+  let sitY = 0.02, sitScale = 0.42, sitYaw = Math.PI;
+  if (b.kind === 'ferris') { sitY = -1.85; sitScale = 0.42; }
+  if (b.kind === 'carousel') { sitY = 0.15; sitScale = 0.55; }
+  if (b.kind === 'superloop') { sitY = 0.35; sitScale = 0.45; sitYaw = 0; }
+  if (b.kind === 'tilt' || b.kind === 'bumper') { sitY = 0.22; sitScale = 0.55; }
+  // prefer a child named seat
+  let seatMesh = null;
+  seat.traverse((o) => { if (/_seat$/.test(o.name) && !seatMesh) seatMesh = o; });
+  if (seatMesh) {
+    const lp = seat.worldToLocal(seatMesh.getWorldPosition(new THREE.Vector3()));
+    guest.group.position.copy(lp);
+    guest.group.position.y += 0.02;
+  } else {
+    guest.group.position.set(0, sitY, 0);
+  }
+  guest.group.rotation.set(0, sitYaw, 0);
+  guest.group.scale.setScalar(sitScale);
+  if (guest.mixer) guest.mixer.stopAllAction();
+  guest.act = null;
+  applySitPose(guest.model, true);
+  return true;
+}
+
+function unboardRide(guest) {
+  const seat = guest.seat;
+  if (seat) seat.userData.taken = null;
+  const pos = new THREE.Vector3();
+  guest.group.getWorldPosition(pos);
+  scene.attach(guest.group);
+  guest.x = pos.x; guest.z = pos.z;
+  guest.group.position.set(guest.x, 0, guest.z);
+  guest.group.rotation.set(0, guest.heading, 0);
+  guest.group.scale.setScalar(1);
+  guest.ride = null; guest.seat = null;
+  applySitPose(guest.model, false);
+  playGuest(guest, 'walk');
+}
+
 function spawnGuest() {
-  const kinds = ['b', 'c', 'a'];
-  const kind = kinds[Math.floor(Math.random() * (Math.random() < 0.75 ? 2 : 3))];
+  const names = ['tevy/casual-walker', 'tevy/dog-walker', 'tevy/road-worker'];
+  const weighted = Math.random();
+  const name = weighted < 0.55 ? names[0] : (weighted < 0.85 ? names[1] : names[2]);
   const g = new THREE.Group();
-  const h = 1.15 + Math.random() * 0.14;
-  const spr = isoSprite(loadSpr(`person_${kind}_0.png`), h, { parent: g, order: 7, alphaTest: 0.2 });
-  addBlobShadow(g, 0.22, 0.22, 0.22);
+  const model = cloneModel(name, 1, { shareMaterials: name === 'tevy/casual-walker' ? false : true, shadows: false });
+  let mixer = null, actions = {}, hand = null;
+  if (model) {
+    // casual variety: tint clothing
+    const tint = new THREE.Color().setHSL(Math.random(), 0.35 + Math.random() * 0.25, 0.42);
+    model.traverse((o) => {
+      if (o.isMesh && o.material && o.material.color && name === 'tevy/casual-walker' && Math.random() < 0.7) {
+        o.material.color.lerp(tint, 0.35);
+      }
+      if (o.isBone && /hand_R/i.test(o.name)) hand = o;
+    });
+    g.add(model);
+    const clips = assets.clips[name] || [];
+    if (clips.length) {
+      mixer = new THREE.AnimationMixer(model);
+      for (const c of clips) {
+        const a = mixer.clipAction(c);
+        a.enabled = true;
+        actions[c.name] = a;
+      }
+    }
+  } else {
+    const spr = isoSprite(loadSpr('person_b_0.png'), 1.2, { parent: g, order: 7, alphaTest: 0.2 });
+    g.userData.sprite = spr;
+  }
+  addBlobShadow(g, 0.28, 0.28, 0.25);
   scene.add(g);
   const ent = entranceCell();
   const w = cellWorld(ent.cx, ent.cz);
   const guest = {
-    group: g, sprite: spr, kind, h,
+    group: g, model, mixer, actions, hand, kind: name,
     x: w.x + (Math.random() - 0.5) * 0.4,
     z: w.z + 0.6 + Math.random() * 0.4,
     heading: Math.PI, speed: 1.15 + Math.random() * 0.5,
     state: 'walk', wait: 0, path: [], targetId: null, food: null,
-    walkT: Math.random(), walkFrame: 0
+    walkT: Math.random(), walkFrame: 0, act: null, ride: null, seat: null
   };
   g.position.set(guest.x, 0, guest.z);
+  playGuest(guest, 'walk');
   crowds.push(guest);
   return guest;
 }
@@ -926,50 +1336,91 @@ function pickGuestTarget(guest) {
   return b;
 }
 
+
 function giveFood(guest, kind) {
   if (guest.food) { guest.group.remove(guest.food); guest.food = null; }
-  const colors = { dog: 0xb8860b, cake: 0xf5e6c8, cotton: 0xff9ac8, lemon: 0xffe14a, pop: 0xfff2c4, leg: 0x8a3a18, pizza: 0xe8b03a };
-  const meshF = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: colors[kind] || 0xffe8a0, roughness: 0.6 }));
-  meshF.position.set(0.16, 0.85, 0.08);
-  guest.group.add(meshF);
+  const foodMap = {
+    dog: 'tevy/hot-dog-cart', cake: 'tevy/donut-glazed', cotton: null,
+    lemon: 'tevy/coffee-cup', pop: null, leg: null, pizza: 'tevy/pepperoni-pizza'
+  };
+  // coffee-cup may be missing from load list — use fallback mesh
+  let meshF = null;
+  if (kind === 'pizza' && assets.models['tevy/pepperoni-pizza']) {
+    meshF = cloneModel('tevy/pepperoni-pizza', 0.55);
+    if (meshF) meshF.position.set(0.18, 1.05, 0.14);
+  } else if (kind === 'cake' && assets.models['tevy/donut-glazed']) {
+    meshF = cloneModel('tevy/donut-glazed', 0.7);
+    if (meshF) meshF.position.set(0.16, 1.08, 0.12);
+  }
+  if (!meshF) {
+    const colors = { dog: 0xb8860b, cake: 0xf5e6c8, cotton: 0xff9ac8, lemon: 0xffe14a, pop: 0xfff2c4, leg: 0x8a3a18, pizza: 0xe8b03a };
+    meshF = new THREE.Mesh(
+      kind === 'cotton' ? new THREE.SphereGeometry(0.09, 10, 8) : new THREE.SphereGeometry(0.07, 8, 6),
+      new THREE.MeshStandardMaterial({ color: colors[kind] || 0xffe8a0, roughness: 0.55, emissive: kind === 'cotton' ? 0x331022 : 0x000000 })
+    );
+    meshF.position.set(0.16, 1.05, 0.10);
+  }
+  if (guest.hand) guest.hand.add(meshF);
+  else guest.group.add(meshF);
   guest.food = meshF;
   guest.foodT = 8 + Math.random() * 5;
 }
 
+
 function setWalkerFrame(g) {
+  if (g.model) {
+    g.group.rotation.y = g.heading;
+    if (g.state === 'walk' || g.state === 'leave') playGuest(g, 'walk');
+    else if (g.state === 'queue' || g.state === 'use') playGuest(g, Math.random() < 0.02 ? 'look_around' : 'idle');
+    return;
+  }
+  const spr = g.group.userData.sprite;
+  if (!spr) return;
   const hx = Math.sin(g.heading), hz = Math.cos(g.heading);
   const toward = hx + hz, right = hx - hz;
   const flip = right > 0, back = toward < 0;
-  let fi;
-  if (g.kind === 'a') fi = g.walkFrame;
-  else fi = (back ? 6 : 0) + g.walkFrame;
-  const file = `person_${g.kind}_${fi}${flip ? 'f' : ''}.png`;
+  let fi = (back ? 6 : 0) + g.walkFrame;
+  const file = `person_b_${Math.min(fi, 7)}${flip ? 'f' : ''}.png`;
   const tex = assets.spr[file] || loadSpr(file);
-  if (g.sprite.material.map !== tex) {
-    g.sprite.material.map = tex; g.sprite.material.needsUpdate = true;
-    g.sprite.scale.set(g.h * texAspect(tex), g.h, 1);
+  if (spr.material.map !== tex) {
+    spr.material.map = tex; spr.material.needsUpdate = true;
   }
 }
 
+
 function stepCrowds(dt) {
   const attrs = buildings.filter((b) => b.kind !== 'path' && b.buildT <= 0).length;
-  const want = attrs ? Math.min(28, 6 + attrs * 2) : 0;
+  const mobile = window.innerWidth < 900 || window.innerHeight < 500;
+  const want = attrs ? Math.min(mobile ? 10 : 14, 4 + attrs) : 0;
   if (crowds.length < want && Math.random() < dt * 1.8) spawnGuest();
 
   for (let i = crowds.length - 1; i >= 0; i--) {
     const g = crowds[i];
+    if (g.mixer) g.mixer.update(dt);
     if (g.foodT > 0) {
       g.foodT -= dt;
-      if (g.foodT <= 0 && g.food) { g.group.remove(g.food); g.food = null; }
+      if (g.foodT <= 0 && g.food) { g.food.parent && g.food.parent.remove(g.food); g.food = null; }
+    }
+    if (g.state === 'ride') {
+      g.wait -= dt;
+      if (g.wait <= 0) {
+        unboardRide(g);
+        const b = buildings.find((x) => x.id === g.targetId);
+        if (b && CATALOG[b.kind] && CATALOG[b.kind].food) giveFood(g, CATALOG[b.kind].food);
+        if (Math.random() < 0.3) { g.state = 'leave'; g.path = bfsPath(worldToCell(g.x, g.z), entranceCell()); g.targetId = null; }
+        else { g.state = 'walk'; pickGuestTarget(g); }
+      }
+      continue;
     }
     if (g.state === 'use' || g.state === 'queue') {
       g.wait -= dt;
-      g.group.position.y = Math.sin(performance.now() * 0.004 + i) * 0.02;
-      g.group.position.set(g.x, g.group.position.y, g.z);
+      g.group.position.set(g.x, 0, g.z);
+      setWalkerFrame(g);
       if (g.wait <= 0) {
         const b = buildings.find((x) => x.id === g.targetId);
         if (b) {
           const cat = CATALOG[b.kind];
+          if (cat.tab === 'rides' && boardRide(g, b)) continue;
           if (cat.food) giveFood(g, cat.food);
           b.stored = Math.min(cat.cap, b.stored + cat.income * 1.2);
         }
@@ -996,48 +1447,57 @@ function stepCrowds(dt) {
         if (g.state === 'leave') { scene.remove(g.group); crowds.splice(i, 1); continue; }
         g.state = 'queue';
         g.wait = 1.6 + Math.random() * 2.2;
+        playGuest(g, 'idle');
       }
       continue;
     }
     g.heading = Math.atan2(dx, dz);
     g.x += Math.sin(g.heading) * g.speed * dt;
     g.z += Math.cos(g.heading) * g.speed * dt;
-    const bob = Math.abs(Math.sin(performance.now() * 0.008 * g.speed + i)) * 0.04;
-    g.group.position.set(g.x, bob, g.z);
+    g.group.position.set(g.x, 0, g.z);
     g.walkT += dt * g.speed * 2.2;
     g.walkFrame = (g.walkT % 1 < 0.5) ? 0 : 1;
     setWalkerFrame(g);
   }
 }
 
+
 function animateRides(dt, t) {
   const lampF = G._lampF || 0;
   for (const b of buildings) {
     const p = b.parts || {};
     if (p.wheel) {
-      p.wheel.rotation.x += dt * 0.32;
-      p.gondolas.forEach((g, i) => { g.rotation.x = -p.wheel.rotation.x + Math.sin(t * 1.6 + i) * 0.07; });
+      const ax = p.wheelAxis || 'z';
+      p.wheel.rotation[ax] += dt * 0.32;
+      p.gondolas.forEach((g, i) => { g.rotation[ax] = -p.wheel.rotation[ax] + Math.sin(t * 1.6 + i) * 0.07; });
     }
-    if (p.arm) p.arm.rotation.x += dt * 1.15;
+    if (p.arm) p.arm.rotation[p.armAxis || 'x'] += dt * 1.15;
     if (p.platform && (b.kind === 'carousel' || b.kind === 'tilt')) {
       p.platform.rotation.y += dt * (b.kind === 'tilt' ? 0.95 : 0.55);
     }
-    if (p.canopy) p.canopy.rotation.y += dt * 0.55;
-    p.horses.forEach((h, i) => { h.position.y = 0.15 + Math.sin(t * 3.1 + i * 0.8) * 0.14; });
+    if (p.canopy && b.kind === 'carousel') p.canopy.rotation.y += dt * 0.55;
+    p.seats.forEach((h, i) => { h.position.y = (h.userData.baseY || 0) + Math.sin(t * 3.1 + i * 0.8) * 0.14; });
+    p.horses.forEach((h, i) => {
+      if (p.seats.includes(h)) return;
+      h.position.y = 0.15 + Math.sin(t * 3.1 + i * 0.8) * 0.14;
+    });
     p.cars.forEach((c, i) => {
       if (b.kind === 'tilt') c.rotation.y += dt * 1.7;
       if (b.kind === 'bumper') {
+        const home = c.userData.home;
         const lim = 2.15;
         c.position.x += (c.userData.vx || 0) * dt;
         c.position.z += (c.userData.vz || 0) * dt;
-        if (Math.abs(c.position.x) > lim) { c.userData.vx *= -1; c.position.x = clamp(c.position.x, -lim, lim); }
-        if (Math.abs(c.position.z) > lim) { c.userData.vz *= -1; c.position.z = clamp(c.position.z, -lim, lim); }
+        const ox = c.position.x - (home ? home.x : 0);
+        const oz = c.position.z - (home ? home.z : 0);
+        if (Math.abs(ox) > lim) { c.userData.vx *= -1; c.position.x = (home ? home.x : 0) + clamp(ox, -lim, lim); }
+        if (Math.abs(oz) > lim) { c.userData.vz *= -1; c.position.z = (home ? home.z : 0) + clamp(oz, -lim, lim); }
         c.rotation.y = Math.atan2(c.userData.vx || 0, c.userData.vz || 1);
         for (let j = i + 1; j < p.cars.length; j++) {
           const o = p.cars[j];
           const dx = o.position.x - c.position.x, dz = o.position.z - c.position.z;
           const d = Math.hypot(dx, dz);
-          if (d < 0.95 && d > 0.01) {
+          if (d < 1.15 && d > 0.01) {
             const nx = dx / d, nz = dz / d;
             const rel = ((c.userData.vx || 0) - (o.userData.vx || 0)) * nx + ((c.userData.vz || 0) - (o.userData.vz || 0)) * nz;
             if (rel < 0) {
@@ -1060,12 +1520,14 @@ function animateRides(dt, t) {
         spr.scale.set(sc, sc, 1);
       });
     });
+    const pulse = (i) => 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 7 + i * 0.55));
     p.bulbs.forEach((bulb, i) => {
-      const pulse = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * 7 + i * 0.55));
+      const pu = pulse(i);
       bulb.traverse((o) => {
-        if (o.isMesh && o.material && o.material.emissive) o.material.emissiveIntensity = lampF * pulse * 2.2;
+        if (o.isMesh && o.material && o.material.emissive) o.material.emissiveIntensity = 0.25 + lampF * pu * 3.2;
       });
     });
+    p.emi.forEach((mat, i) => { mat.emissiveIntensity = 0.2 + lampF * pulse(i) * 2.8; });
   }
 }
 
@@ -1074,13 +1536,14 @@ function clearGhost() {
   if (ghost.group) { scene.remove(ghost.group); ghost.group = null; }
   ghost.kind = null;
 }
+
 function ensureGhost(kind) {
   if (ghost.kind === kind && ghost.group) return;
   clearGhost();
   const cat = CATALOG[kind];
   if (!cat || cat.special) return;
   const g = new THREE.Group();
-  const model = cloneModel(cat.model);
+  const model = buildArt(kind);
   if (model) {
     model.traverse((o) => { if (o.isMesh) { o.material = M.ghostOk.clone(); o.castShadow = false; } });
     g.add(model);
@@ -1650,9 +2113,18 @@ function switchTab(id) {
   populateTray();
 }
 
+
 function frame() {
   requestAnimationFrame(frame);
   const dt = clamp(clock.getDelta(), 0, 0.05);
+  const now = performance.now();
+  G._fpsN = (G._fpsN || 0) + 1;
+  if (!G._fpsT0) G._fpsT0 = now;
+  if (now - G._fpsT0 >= 500) {
+    G.fps = G._fpsN / ((now - G._fpsT0) / 1000);
+    G._fpsN = 0;
+    G._fpsT0 = now;
+  }
   if (!ready) { renderer.setRenderTarget(null); renderer.clear(); renderer.render(scene, camera); return; }
   if (G.mode === 'play' || G.mode === 'title') {
     if (G.mode === 'play') {
@@ -1685,46 +2157,64 @@ function hideUI(v) {
 function hideTray(v) {
   $('buildTray').classList.toggle('hidden', !!v);
 }
+
 function placeManyForShot(night) {
   newGame();
-  const layout = [
-    ['path', 0, 5],['path', 0, 4],['path', 0, 3],['path', 0, 2],['path', 0, 1],['path', 0, 0],
-    ['path', 0, -1],['path', 0, -2],['path', 1, 2],['path', -1, 2],['path', 1, 0],['path', -1, 0],
-    ['path', 2, 0],['path', -2, 0],['path', 1, -2],['path', -1, -2],['path', 2, 2],['path', -2, 2],
-    ['ferris', -3, -1],
-    ['superloop', 3, -1],
-    ['carousel', -3, 3],
-    ['corndog', 2, 3],
-    ['cotton', -2, 4],
-    ['ringtoss', 3, 3],
-    ['lemonade', 2, -3],
-    ['funnelcake', -2, -3]
-  ];
+  G.lotExtent = 7;
+  G.expandCount = 1;
+  rebuildLotShell();
+  const paths = [];
+  for (let z = -6; z <= 7; z++) paths.push(['path', 0, z]);
+  for (const z of [-4, -1, 2, 5]) {
+    for (let x = -5; x <= 5; x++) if (x !== 0) paths.push(['path', x, z]);
+  }
+  const layout = paths.concat([
+    ['ferris', -4, -2],
+    ['superloop', 4, -2],
+    ['carousel', -4, 4],
+    ['tilt', 4, 4],
+    ['bumper', 0, -6],
+    ['corndog', 2, 6],
+    ['cotton', -2, 6],
+    ['ringtoss', 2, 3],
+    ['lemonade', 2, 0],
+    ['funnelcake', -2, 0],
+    ['popcorn', -2, 3],
+    ['turkey', 5, 6],
+    ['pizza', -5, 6]
+  ]);
   clearWorldBuildings();
-  G.cash = 5000; G.level = 4; G.xp = 400;
+  G.cash = 8000; G.level = 4; G.xp = 500;
   for (const [k, cx, cz] of layout) placeBuilding(k, cx, cz, 0, { buildT: 0, force: true });
-  G.hour = night ? 20.3 : 15.0;
+  G.hour = night ? 20.4 : 15.0;
   setAtmosphere(G.hour);
-  const spots = [[0,0],[0,2],[1,0],[-1,2],[0,-2],[2,0],[-2,0],[1,2]];
-  for (let i = 0; i < 16; i++) {
+  const spots = [[0,5],[0,2],[0,0],[0,-1],[1,2],[-1,2],[2,2],[-2,2],[1,5],[-1,5],[2,-1],[-2,-1],[1,-4],[-1,-4],[2,5],[-2,5]];
+  for (let i = 0; i < 12; i++) {
     const g = spawnGuest();
     const s = spots[i % spots.length];
     const w = cellWorld(s[0], s[1]);
-    g.x = w.x + (Math.random()-0.5)*0.5;
-    g.z = w.z + (Math.random()-0.5)*0.5;
+    g.x = w.x + (Math.random() - 0.5) * 0.45;
+    g.z = w.z + (Math.random() - 0.5) * 0.45;
     g.group.position.set(g.x, 0, g.z);
   }
-  // spin rides so shots catch mid-animation
-  animateRides(2.5, 4.0);
+  const rides = buildings.filter((b) => CATALOG[b.kind] && CATALOG[b.kind].tab === 'rides');
+  crowds.forEach((g, i) => {
+    if (i < 6 && rides.length) boardRide(g, rides[i % rides.length]);
+  });
+  animateRides(3.2, 6.0);
   hideTray(true);
-  G.pan.set(0, 0, 0.2); G.zoom = night ? 11.8 : 12.4;
+  setHint('', 0); if ($('hint')) $('hint').style.opacity = '0';
+  G.pan.set(0, 0, 0);
+  G.zoom = night ? 15.2 : 16.2;
   applyCamera();
 }
+
 
 function exposeDebug() {
   window.LOT = {
     get ready() { return ready; },
-    G, CATALOG, TILE, SAVE_KEY, buildings, crowds,
+    get fps() { return G.fps || 0; },
+    G, CATALOG, TILE, SAVE_KEY, buildings, crowds, ART,
     newGame, continueGame, save, loadSave, applyCamera, setMuted, hideUI, hideTray, showTitle,
     placeBuilding, removeBuilding, collectBuilding,
     collectAll() {
@@ -1750,7 +2240,7 @@ function exposeDebug() {
         lotExtent: G.lotExtent, nBuildings: buildings.length,
         kinds: buildings.map((b) => b.kind),
         stored: buildings.map((b) => ({ kind: b.kind, stored: +b.stored.toFixed(2), connected: isConnected(b) })),
-        guests: crowds.length, mode: G.mode
+        guests: crowds.length, mode: G.mode, fps: G.fps || 0
       };
     },
     poseBuildMenu() {
@@ -1759,10 +2249,28 @@ function exposeDebug() {
       G.tab = 'rides'; switchTab('rides');
       onPickCard('ferris');
       G.pan.set(0, 0, 1); G.zoom = 13; applyCamera();
-      hideUI(false); showHUD();
+      hideUI(false); showHUD(); hideTray(false);
     },
     poseBusyDay() { placeManyForShot(false); hideUI(false); showHUD(); G.mode = 'play'; },
-    poseNightShow() { placeManyForShot(true); hideUI(false); showHUD(); G.mode = 'play'; }
+    poseNightShow() { placeManyForShot(true); hideUI(false); showHUD(); G.mode = 'play'; },
+    poseCloseRides() {
+      placeManyForShot(false);
+      hideUI(true); hideTray(true);
+      G.hour = 16.6; setAtmosphere(16.6);
+      G.pan.set(0.4, 0, -1.6); G.zoom = 7.6; applyCamera();
+      G.mode = 'play';
+    },
+    perf() {
+      let tris = 0, meshes = 0;
+      scene.traverse((o) => {
+        if (o.isMesh && o.geometry) {
+          meshes++;
+          const idx = o.geometry.index;
+          tris += idx ? idx.count / 3 : (o.geometry.attributes.position ? o.geometry.attributes.position.count / 3 : 0);
+        }
+      });
+      return { fps: G.fps || 0, meshes, tris: Math.round(tris), guests: crowds.length, buildings: buildings.length };
+    }
   };
 }
 

@@ -23,7 +23,7 @@ def cdp_shot(page, path):
     print("wrote", path.name, Path(path).stat().st_size, flush=True)
 
 def wait_ready(page):
-    page.wait_for_function("() => window.LOT && window.LOT.ready", timeout=45000)
+    page.wait_for_function("() => window.LOT && window.LOT.ready", timeout=120000)
 
 def snap(page):
     return page.evaluate("() => LOT.snapshot()")
@@ -127,16 +127,32 @@ def play_flow(page, label):
     if s3["cash"] < after["cash"] - 1:
         fail(f"{label}: save/reload lost cash {s3['cash']} vs {after['cash']}")
 
+def measure_perf(page, label):
+    page.wait_for_timeout(1800)
+    samples = []
+    for _ in range(6):
+        page.wait_for_timeout(400)
+        samples.append(page.evaluate("() => LOT.perf()"))
+    fps = [s["fps"] for s in samples if s and s.get("fps")]
+    last = samples[-1] if samples else {}
+    avg = sum(fps) / len(fps) if fps else 0
+    print(f"  {label} perf avg_fps={avg:.1f} samples={fps} last={last}", flush=True)
+    return avg, last
+
 def shots(page):
     page.evaluate("() => { LOT.poseBuildMenu(); LOT.setMuted(true); }")
-    page.wait_for_timeout(500)
-    cdp_shot(page, SHOT / "11_build_menu.png")
+    page.wait_for_timeout(700)
+    cdp_shot(page, SHOT / "14_build_menu.png")
     page.evaluate("() => { LOT.poseBusyDay(); LOT.setMuted(true); }")
-    page.wait_for_timeout(800)
-    cdp_shot(page, SHOT / "12_busy_day.png")
-    page.evaluate("() => { LOT.poseNightShow(); LOT.setMuted(true); }")
+    avg, last = measure_perf(page, "busy-day")
+    cdp_shot(page, SHOT / "15_busy_day_wide.png")
+    page.evaluate("() => { LOT.poseCloseRides(); LOT.setMuted(true); }")
     page.wait_for_timeout(900)
-    cdp_shot(page, SHOT / "13_night_rides.png")
+    cdp_shot(page, SHOT / "16_ferris_loop_close.png")
+    page.evaluate("() => { LOT.poseNightShow(); LOT.setMuted(true); }")
+    navg, nlast = measure_perf(page, "night")
+    cdp_shot(page, SHOT / "17_night_lit.png")
+    Path("/tmp/lot-perf.json").write_text(__import__("json").dumps({"day": last, "day_avg": avg, "night": nlast, "night_avg": navg}, indent=2))
 
 def main():
     with sync_playwright() as p:
