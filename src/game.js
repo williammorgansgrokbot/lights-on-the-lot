@@ -1290,7 +1290,10 @@ function stepVehicle(dt) {
   if (vehicle.jackknife && t.speed < 0) t.speed = Math.max(t.speed, -0.12);
 
   const wb = t.wheelbase;
-  const yawRate = (t.speed * Math.tan(t.steer)) / wb;
+  // Input: positive steer = wheel/keys to the right (clockwise HUD).
+  // Y-up right-handed, heading 0 = +Z: driver's left is +X, and heading+
+  // swings the nose toward +X (left). Yaw must therefore oppose tan(steer).
+  const yawRate = -(t.speed * Math.tan(t.steer)) / wb;
   const nxHeading = t.heading + yawRate * dt;
   const nx = t.x + Math.sin(nxHeading) * t.speed * dt;
   const nz = t.z + Math.cos(nxHeading) * t.speed * dt;
@@ -1318,7 +1321,9 @@ function stepVehicle(dt) {
       if (Math.abs(st) < 1e-4) { node.rotation.y = 0; return; }
       const r = wb / Math.tan(st);
       const side = node.position.x < 0 ? 1 : -1;
-      node.rotation.y = Math.atan(wb / (r + side * track * 0.5));
+      // Positive rotation.y points a +Z-facing wheel toward +X (driver's left),
+      // so the visual angle is opposite the (right-positive) steer input.
+      node.rotation.y = -Math.atan(wb / (r + side * track * 0.5));
     });
     const roll = (t.speed * dt) / (t.wheelR || 0.52);
     t.parts.wheels.forEach((w) => { w.rotateX(roll); });
@@ -2419,7 +2424,44 @@ window.addEventListener('resize', applyCamera);
 function exposeDebug() {
   window.LOT = {
     get ready() { return ready; },
-    G, newGame, continueGame, showTitle, save, loadSave, applyCamera, placeTrailerOnHitch, hitchWorld,
+    G, newGame, continueGame, showTitle, save, loadSave, applyCamera, placeTrailerOnHitch, hitchWorld, camera,
+    screenSwing(oldHeading) {
+      const t = vehicle.truck;
+      const s0 = Math.sin(oldHeading), c0 = Math.cos(oldHeading);
+      const s1 = Math.sin(t.heading), c1 = Math.cos(t.heading);
+      const left = { x: c0, z: -s0 };
+      const toScreen = (x, y, z) => {
+        const v = new THREE.Vector3(x, y, z).project(camera);
+        return { x: (v.x * 0.5 + 0.5) * window.innerWidth, y: (-v.y * 0.5 + 0.5) * window.innerHeight };
+      };
+      const origin = toScreen(t.x, 1.0, t.z);
+      const oldNose = toScreen(t.x + s0 * 3, 1.0, t.z + c0 * 3);
+      const newNose = toScreen(t.x + s1 * 3, 1.0, t.z + c1 * 3);
+      const leftPt = toScreen(t.x + left.x * 3, 1.0, t.z + left.z * 3);
+      const dx = newNose.x - oldNose.x, dy = newNose.y - oldNose.y;
+      const lx = leftPt.x - origin.x, ly = leftPt.y - origin.y;
+      return dx * lx + dy * ly;
+    },
+    steerDebug() {
+      const t = vehicle.truck;
+      const s = Math.sin(t.heading), c = Math.cos(t.heading);
+      const fwd = { x: s, z: c };
+      const left = { x: c, z: -s };
+      const toScreen = (x, y, z) => {
+        const v = new THREE.Vector3(x, y, z).project(camera);
+        return { x: (v.x * 0.5 + 0.5) * window.innerWidth, y: (-v.y * 0.5 + 0.5) * window.innerHeight };
+      };
+      const origin = toScreen(t.x, 1.0, t.z);
+      const nose = toScreen(t.x + fwd.x * 3, 1.0, t.z + fwd.z * 3);
+      const leftPt = toScreen(t.x + left.x * 3, 1.0, t.z + left.z * 3);
+      const wheelY = (t.parts && t.parts.steers || []).map((n) => n.rotation.y);
+      return {
+        heading: t.heading, steer: t.steer, speed: t.speed,
+        fwd, left, origin, nose, leftPt, wheelY,
+        inputSteer: input.steer
+      };
+    },
+
     SAFE_SPAWN, spawnTruckSafe, evictIfStuck, resetTruckToEntrance, vehicleIsStuck, collideAt, input, vehicle,
     truckPose() {
       const t = vehicle.truck;
