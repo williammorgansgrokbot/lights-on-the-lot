@@ -136,3 +136,63 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0c080c;color:#f3e6d0;
   #selBar{bottom:calc(108px + env(safe-area-inset-bottom,0px))}
   #levelUp{font-size:22px}
 }
+
+.btn:hover:not(:disabled){border-color:#e8b060;filter:brightness(1.08)}
+.icon-btn:hover{border-color:#e8b060;filter:brightness(1.08)}
+.tab:hover{border-color:#e8b060;color:#f6ead2}
+.card:hover:not(.locked){border-color:#f2c14e;transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+.kbd{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;border:1px solid rgba(232,200,140,.35);
+  font-family:Michroma,sans-serif;font-size:8px;letter-spacing:.08em;color:#c9b48a;vertical-align:middle}
+#trayKeys{display:none;text-align:center;font-family:Michroma,sans-serif;font-size:9px;letter-spacing:.1em;
+  color:#c9b48a;opacity:.85;padding:2px 8px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+@media (pointer:fine){
+  #trayKeys{display:block}
+  #trayCards{scrollbar-width:thin;scrollbar-color:rgba(232,200,140,.35) transparent}
+  #trayCards::-webkit-scrollbar{display:block;height:6px}
+  #trayCards::-webkit-scrollbar-thumb{background:rgba(232,200,140,.35);border-radius:6px}
+}
+
+/* Desktop Mac layout: 1440–2560px wide screens */
+@media (min-width:1440px){
+  .title-logo{width:min(280px,22vw);top:max(16px,env(safe-area-inset-top));left:max(20px,env(safe-area-inset-left))}
+  .title-hint{font-size:15px;margin-bottom:16px}
+  .title-menu{gap:18px;margin-bottom:16px}
+  .btn{font-size:13px;padding:14px 24px;min-width:180px}
+  .hcard{padding:9px 16px;border-radius:12px}
+  .hcard b{font-size:22px}
+  .hcard.clock{min-width:132px}
+  .hcard.xp,.xpbar{min-width:140px;width:140px}
+  .icon-btn{width:46px;height:46px}
+  .topbar{top:max(14px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));gap:12px}
+  #hint{top:max(78px,calc(env(safe-area-inset-top) + 68px));font-size:12px}
+  #buildTray{padding:0 28px calc(16px + env(safe-area-inset-bottom,0px))}
+  #trayCards{justify-content:center}
+  #trayTabs{gap:8px;padding:6px 4px 8px}
+  .tab{font-size:10px;padding:8px 16px;min-height:34px}
+  .card{width:136px;padding:8px 8px 10px}
+  .card img{width:80px;height:80px;border-radius:12px}
+  .card .name{font-size:13px}
+  #selBar{bottom:calc(156px + env(safe-area-inset-bottom,0px));padding:8px 12px 8px 18px;gap:10px}
+  #selName{font-size:16px}
+  #settings .panel{min-width:min(520px,42vw);padding:28px 32px}
+}
+
+@media (min-width:1920px){
+  .title-logo{width:min(320px,18vw)}
+  .hcard b{font-size:24px}
+  .hcard.xp,.xpbar{min-width:160px;width:160px}
+  #buildTray{padding:0 40px calc(20px + env(safe-area-inset-bottom,0px))}
+  .card{width:148px}
+  .card img{width:88px;height:88px}
+  #selBar{bottom:calc(176px + env(safe-area-inset-bottom,0px))}
+  #trayKeys{font-size:10px}
+}
+
+@media (min-width:2560px){
+  .card{width:160px}
+  .card img{width:96px;height:96px}
+  .hcard b{font-size:26px}
+  #buildTray{padding:0 56px calc(24px + env(safe-area-inset-bottom,0px))}
+  #selBar{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
+}

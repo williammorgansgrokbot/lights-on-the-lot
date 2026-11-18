@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Builder sim tests: place, collect, level up, save/reload. iPhone + desktop."""
-import base64, math, sys, time
+"""Builder sim tests for desktop Mac viewports: 1440x900 and 2560x1440."""
+import base64, json, sys, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -30,10 +30,10 @@ def snap(page):
 
 def run_context(p, kind):
     browser = p.chromium.launch(headless=True, args=["--use-gl=angle", "--ignore-gpu-blocklist"])
-    if kind == "iphone":
-        ctx = browser.new_context(viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    if kind == "wide":
+        ctx = browser.new_context(viewport={"width": 2560, "height": 1440}, device_scale_factor=1, is_mobile=False, has_touch=False)
     else:
-        ctx = browser.new_context(viewport={"width": 1280, "height": 720}, is_mobile=False, has_touch=False)
+        ctx = browser.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=2, is_mobile=False, has_touch=False)
     page = ctx.new_page()
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: logs.append(f"{m.type}: {m.text}"))
@@ -50,13 +50,13 @@ def play_flow(page, label):
         fail(f"{label}: mode is {s0['mode']}")
     if s0["cash"] < 400:
         fail(f"{label}: starting cash {s0['cash']}")
-    # no driving HUD
     if page.locator("#pDrive").count():
         fail(f"{label}: drive pedal still in the DOM")
     if not page.locator(".card").count():
         fail(f"{label}: build tray has no cards")
+    if page.locator("#trayKeys").count() == 0:
+        fail(f"{label}: desktop tray shortcuts missing")
 
-    # place more path, a ferris next to the starter path, and a food stand
     placed = page.evaluate(
         """() => {
           LOT.grant(2000, 0);
@@ -64,7 +64,6 @@ def play_flow(page, label):
           const p2 = LOT.placeAt('path', -2, 2);
           const f = LOT.placeAt('ferris', -2, 0);
           const food = LOT.placeAt('corndog', 2, 3);
-          // corndog 2x2 at (2,3) may not touch starter path (0,2..5) — add a link
           const p3 = LOT.placeAt('path', 1, 2);
           const p4 = LOT.placeAt('path', 2, 2);
           return { p1, p2, f, food, p3, p4, snap: LOT.snapshot() };
@@ -77,7 +76,18 @@ def play_flow(page, label):
     if "ferris" not in kinds or "corndog" not in kinds:
         fail(f"{label}: kinds missing rides {kinds}")
 
-    # simulate income for several seconds
+    # desktop keys: Esc cancels, 2 switches to food
+    page.evaluate("() => LOT.pick('ferris')")
+    page.keyboard.press("Escape")
+    cancelled = page.evaluate("() => !LOT.G.buildKind")
+    if not cancelled:
+        fail(f"{label}: Esc did not cancel build")
+    page.keyboard.press("2")
+    tab = page.evaluate("() => LOT.G.tab")
+    if tab != "food":
+        fail(f"{label}: key 2 should switch to food, got {tab}")
+    page.keyboard.press("1")
+
     page.evaluate(
         """() => {
           for (let i = 0; i < 80; i++) LOT.tickIncome(0.25);
@@ -93,13 +103,11 @@ def play_flow(page, label):
     if after["cash"] < before["cash"]:
         fail(f"{label}: cash did not increase after collect")
 
-    # level up
     page.evaluate("() => LOT.grant(0, 90)")
     s2 = snap(page)
     print(f"  {label} after XP {s2}", flush=True)
     if s2["level"] < 2:
         fail(f"{label}: expected level 2 after granting XP, got {s2['level']} xp={s2['xp']}")
-    # carousel should now be unlocked (level 2)
     unlocked = page.evaluate(
         """() => {
           LOT.G.tab = 'rides'; LOT.populateTray();
@@ -112,7 +120,6 @@ def play_flow(page, label):
     if not unlocked or unlocked["locked"]:
         fail(f"{label}: carousel should be unlocked at level 2 {unlocked}")
 
-    # save / reload
     page.evaluate("() => LOT.save()")
     page.reload(wait_until="domcontentloaded", timeout=20000)
     wait_ready(page)
@@ -152,24 +159,26 @@ def shots(page):
     page.evaluate("() => { LOT.poseNightShow(); LOT.setMuted(true); }")
     navg, nlast = measure_perf(page, "night")
     cdp_shot(page, SHOT / "17_night_lit.png")
-    Path("/tmp/lot-perf.json").write_text(__import__("json").dumps({"day": last, "day_avg": avg, "night": nlast, "night_avg": navg}, indent=2))
+    Path("/tmp/lot-perf.json").write_text(json.dumps({"day": last, "day_avg": avg, "night": nlast, "night_avg": navg}, indent=2))
 
 def main():
     with sync_playwright() as p:
-        print("=== iPhone ===", flush=True)
-        browser, ctx, page = run_context(p, "iphone")
-        play_flow(page, "iPhone")
+        print("=== Mac 1440x900 ===", flush=True)
+        browser, ctx, page = run_context(p, "mac")
+        play_flow(page, "1440x900")
         shots(page)
         ctx.close(); browser.close()
 
-        print("=== desktop ===", flush=True)
-        browser, ctx, page = run_context(p, "desktop")
-        play_flow(page, "desktop")
+        print("=== Mac 2560x1440 ===", flush=True)
+        browser, ctx, page = run_context(p, "wide")
+        play_flow(page, "2560x1440")
+        # smoke a packed lot at the wide size for renderer.info
+        page.evaluate("() => { LOT.poseBusyDay(); LOT.setMuted(true); }")
+        measure_perf(page, "2560-busy-day")
         ctx.close(); browser.close()
 
     if errors:
         print("page errors:", errors[:8], flush=True)
-        # filter benign
         real = [e for e in errors if "Failed to load" not in e]
         if real:
             failures.extend(real[:4])

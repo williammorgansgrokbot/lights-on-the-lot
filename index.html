@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#140c14">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Lights on the Lot</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -54,10 +54,10 @@
 
   <div id="selBar" class="hidden">
     <div id="selName">Ferris Wheel</div>
-    <button id="btnRotate" class="btn chip">ROTATE</button>
+    <button id="btnRotate" class="btn chip">ROTATE <span class="kbd">R</span></button>
     <button id="btnMove" class="btn chip">MOVE</button>
     <button id="btnPlayBooth" class="btn chip primary hidden">PLAY</button>
-    <button id="btnSell" class="btn chip danger">SELL</button>
+    <button id="btnSell" class="btn chip danger">SELL <span class="kbd">DEL</span></button>
   </div>
 
   <div id="buildTray">
@@ -68,6 +68,7 @@
       <button class="tab" data-tab="paths">PATHS</button>
     </div>
     <div id="trayCards"></div>
+    <div id="trayKeys">1–4 tabs · [ ] cycle · Enter build · R rotate · Del sell · Esc cancel · scroll zoom · middle/right-drag or WASD pan</div>
   </div>
 </div>
 
@@ -77,8 +78,8 @@
   <div class="panel">
     <div class="h">SETTINGS</div>
     <label>Sound <input type="checkbox" id="optSound" checked></label>
-    <p class="fine">Pinch to zoom, drag to pan. Tap a card to build, tap a coin to collect. Rides and stands earn more when a path reaches them.</p>
-    <div class="keys">Touch: tap to place or collect, pinch zoom, drag pan.<br>Keyboard: B build tray, Esc cancel, 1–4 category tabs.</div>
+    <p class="fine">Left-click to place or collect. Rides and stands earn more when a path reaches them.</p>
+    <div class="keys">Mouse: left-click place or select, right-click cancel, middle or right-drag pan, scroll to zoom. Hover highlights a building.<br>Keyboard: WASD or arrows pan, R rotate, Delete sell, Esc cancel, 1–4 tray tabs, [ ] cycle items, Enter to build.<br>Touch (fallback): tap to place or collect, pinch zoom, drag pan.</div>
     <button id="btnSettingsDone" class="btn">DONE</button>
     <button id="btnToTitle" class="btn ghost">TITLE SCREEN</button>
   </div>
@@ -94,6 +95,6 @@
 </div>
 
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
-<script type="module" src="src/game.js?v=7"></script>
+<script type="module" src="src/game.js?v=8"></script>
 </body>
 </html>
