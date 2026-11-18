@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#140c14">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Lights on the Lot</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -16,16 +16,16 @@
 <div id="loading">
   <img class="load-logo" alt="Lights on the Lot" src="assets/ui/logo.png">
   <div class="load-bar"><i id="loadFill"></i></div>
-  <div class="load-kicker">LOADING THE MIDWAY</div>
+  <div class="load-kicker">LIGHTING THE MIDWAY</div>
 </div>
 
 <div id="title" class="screen hidden">
   <img class="title-logo" alt="Lights on the Lot" src="assets/ui/logo.png">
   <div class="title-menu">
-    <button id="btnPlay" class="btn primary">NEW SETUP</button>
+    <button id="btnPlay" class="btn primary">NEW CARNIVAL</button>
     <button id="btnContinue" class="btn hidden">CONTINUE</button>
   </div>
-  <div class="title-hint">Back the trailer. Fit the lot. Open the gates.</div>
+  <div class="title-hint">Build the midway. Collect the coins. Light up the night.</div>
 </div>
 
 <div id="hud" class="hidden">
@@ -34,16 +34,15 @@
       <span class="lbl">CASH</span>
       <b id="hudCash">$0</b>
     </div>
-    <div class="hcard tickets">
-      <span class="lbl">TICKETS</span>
-      <b id="hudTickets">0</b>
+    <div class="hcard xp">
+      <span class="lbl" id="hudLvlLbl">LEVEL 1</span>
+      <div class="xpbar"><i id="xpFill"></i></div>
     </div>
     <div class="hcard clock">
       <span class="lbl" id="hudDayLbl">DAY 1</span>
-      <b id="hudClock">3:00 PM</b>
+      <b id="hudClock">2:00 PM</b>
     </div>
     <div class="hbtns">
-      <button id="btnUnstuck" class="icon-btn" title="Unstick truck — reset to the entrance" aria-label="Unstick truck">↺</button>
       <button id="btnMute" class="icon-btn" title="Mute" aria-label="Mute">♪</button>
       <button id="btnSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
     </div>
@@ -51,33 +50,35 @@
 
   <div id="hint"></div>
   <div id="warn" class="hidden"></div>
-  <div id="jackknife" class="hidden">JACKKNIFE — pull forward to straighten</div>
+  <div id="levelUp" class="hidden"></div>
 
-  <div id="actionRow">
-    <button id="btnHook" class="btn action hidden">HOOK</button>
-    <button id="btnSetup" class="btn action primary hidden">SET UP</button>
+  <div id="selBar" class="hidden">
+    <div id="selName">Ferris Wheel</div>
+    <button id="btnRotate" class="btn chip">ROTATE</button>
+    <button id="btnMove" class="btn chip">MOVE</button>
+    <button id="btnPlayBooth" class="btn chip primary hidden">PLAY</button>
+    <button id="btnSell" class="btn chip danger">SELL</button>
   </div>
 
-  <div id="touch">
-    <div id="wheelPad"><div id="wheel"><i></i></div></div>
-    <div id="pedals">
-      <button id="pRev" class="pd">R</button>
-      <button id="pDrive" class="pd">D</button>
+  <div id="buildTray">
+    <div id="trayTabs">
+      <button class="tab on" data-tab="rides">RIDES</button>
+      <button class="tab" data-tab="food">FOOD</button>
+      <button class="tab" data-tab="games">GAMES</button>
+      <button class="tab" data-tab="paths">PATHS</button>
     </div>
+    <div id="trayCards"></div>
   </div>
-  <div id="keysHint">WASD / arrows to drive · R reverse · drag to pan · scroll to zoom</div>
 </div>
+
+<div id="pops"></div>
 
 <div id="settings" class="screen hidden">
   <div class="panel">
     <div class="h">SETTINGS</div>
     <label>Sound <input type="checkbox" id="optSound" checked></label>
-    <label class="assist">Trailer assist (ghost pad guide)
-      <input type="checkbox" id="optAssist">
-    </label>
-    <p class="fine">Assist is off by default. Backing is fully manual — a jackknife will lock the trailer until you pull forward.</p>
-    <div class="keys">Touch: wheel + D / R pedals, pinch zoom, drag pan.<br>Keyboard: W/↑ drive, S/↓ or R reverse, A/D steer, E set up / hook, Esc menu.</div>
-    <button id="btnResetTruck" class="btn">RESET TRUCK</button>
+    <p class="fine">Pinch to zoom, drag to pan. Tap a card to build, tap a coin to collect. Rides and stands earn more when a path reaches them.</p>
+    <div class="keys">Touch: tap to place or collect, pinch zoom, drag pan.<br>Keyboard: B build tray, Esc cancel, 1–4 category tabs.</div>
     <button id="btnSettingsDone" class="btn">DONE</button>
     <button id="btnToTitle" class="btn ghost">TITLE SCREEN</button>
   </div>
@@ -93,6 +94,6 @@
 </div>
 
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
-<script type="module" src="src/game.js?v=5"></script>
+<script type="module" src="src/game.js?v=6"></script>
 </body>
 </html>

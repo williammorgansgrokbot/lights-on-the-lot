@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Builder sim tests: place, collect, level up, save/reload. iPhone + desktop."""
+import base64, math, sys, time
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parent
+SHOT = ROOT / "screenshots"
+SHOT.mkdir(exist_ok=True)
+PORT = Path("/tmp/lot-port").read_text().strip()
+URL = f"http://127.0.0.1:{PORT}/index.html"
+
+failures, errors, logs = [], [], []
+
+def fail(msg):
+    print("FAIL:", msg, flush=True)
+    failures.append(msg)
+
+def cdp_shot(page, path):
+    sess = page.context.new_cdp_session(page)
+    data = sess.send("Page.captureScreenshot", {"format": "png", "fromSurface": True})
+    Path(path).write_bytes(base64.b64decode(data["data"]))
+    print("wrote", path.name, Path(path).stat().st_size, flush=True)
+
+def wait_ready(page):
+    page.wait_for_function("() => window.LOT && window.LOT.ready", timeout=45000)
+
+def snap(page):
+    return page.evaluate("() => LOT.snapshot()")
+
+def run_context(p, kind):
+    browser = p.chromium.launch(headless=True, args=["--use-gl=angle", "--ignore-gpu-blocklist"])
+    if kind == "iphone":
+        ctx = browser.new_context(viewport={"width": 844, "height": 390}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    else:
+        ctx = browser.new_context(viewport={"width": 1280, "height": 720}, is_mobile=False, has_touch=False)
+    page = ctx.new_page()
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.on("console", lambda m: logs.append(f"{m.type}: {m.text}"))
+    page.goto(URL, wait_until="domcontentloaded", timeout=20000)
+    wait_ready(page)
+    return browser, ctx, page
+
+def play_flow(page, label):
+    page.evaluate("() => { localStorage.clear(); LOT.newGame(); LOT.setMuted(true); }")
+    page.wait_for_timeout(200)
+    s0 = snap(page)
+    print(f"  {label} newGame {s0}", flush=True)
+    if s0["mode"] != "play":
+        fail(f"{label}: mode is {s0['mode']}")
+    if s0["cash"] < 400:
+        fail(f"{label}: starting cash {s0['cash']}")
+    # no driving HUD
+    if page.locator("#pDrive").count():
+        fail(f"{label}: drive pedal still in the DOM")
+    if not page.locator(".card").count():
+        fail(f"{label}: build tray has no cards")
+
+    # place more path, a ferris next to the starter path, and a food stand
+    placed = page.evaluate(
+        """() => {
+          LOT.grant(2000, 0);
+          const p1 = LOT.placeAt('path', -1, 2);
+          const p2 = LOT.placeAt('path', -2, 2);
+          const f = LOT.placeAt('ferris', -2, 0);
+          const food = LOT.placeAt('corndog', 2, 3);
+          // corndog 2x2 at (2,3) may not touch starter path (0,2..5) — add a link
+          const p3 = LOT.placeAt('path', 1, 2);
+          const p4 = LOT.placeAt('path', 2, 2);
+          return { p1, p2, f, food, p3, p4, snap: LOT.snapshot() };
+        }"""
+    )
+    print(f"  {label} placed {placed}", flush=True)
+    if not placed["f"] or not placed["food"]:
+        fail(f"{label}: failed to place ferris or food {placed}")
+    kinds = placed["snap"]["kinds"]
+    if "ferris" not in kinds or "corndog" not in kinds:
+        fail(f"{label}: kinds missing rides {kinds}")
+
+    # simulate income for several seconds
+    page.evaluate(
+        """() => {
+          for (let i = 0; i < 80; i++) LOT.tickIncome(0.25);
+        }"""
+    )
+    page.wait_for_timeout(100)
+    before = snap(page)
+    collected = page.evaluate("() => LOT.collectAll()")
+    after = snap(page)
+    print(f"  {label} collect {collected} cash {before['cash']} -> {after['cash']}", flush=True)
+    if collected < 6:
+        fail(f"{label}: expected to collect coins, got {collected} (stored={before['stored']})")
+    if after["cash"] < before["cash"]:
+        fail(f"{label}: cash did not increase after collect")
+
+    # level up
+    page.evaluate("() => LOT.grant(0, 90)")
+    s2 = snap(page)
+    print(f"  {label} after XP {s2}", flush=True)
+    if s2["level"] < 2:
+        fail(f"{label}: expected level 2 after granting XP, got {s2['level']} xp={s2['xp']}")
+    # carousel should now be unlocked (level 2)
+    unlocked = page.evaluate(
+        """() => {
+          LOT.G.tab = 'rides'; LOT.populateTray();
+          const cards = [...document.querySelectorAll('.card')];
+          const car = cards.find(c => c.dataset.kind === 'carousel');
+          return car ? { locked: car.classList.contains('locked'), kind: car.dataset.kind } : null;
+        }"""
+    )
+    print(f"  {label} carousel card {unlocked}", flush=True)
+    if not unlocked or unlocked["locked"]:
+        fail(f"{label}: carousel should be unlocked at level 2 {unlocked}")
+
+    # save / reload
+    page.evaluate("() => LOT.save()")
+    page.reload(wait_until="domcontentloaded", timeout=20000)
+    wait_ready(page)
+    page.evaluate("() => { LOT.continueGame(); LOT.setMuted(true); }")
+    page.wait_for_timeout(250)
+    s3 = snap(page)
+    print(f"  {label} reloaded {s3}", flush=True)
+    if "ferris" not in s3["kinds"] or "corndog" not in s3["kinds"]:
+        fail(f"{label}: save/reload lost buildings {s3['kinds']}")
+    if s3["level"] < 2:
+        fail(f"{label}: save/reload lost level {s3}")
+    if s3["cash"] < after["cash"] - 1:
+        fail(f"{label}: save/reload lost cash {s3['cash']} vs {after['cash']}")
+
+def shots(page):
+    page.evaluate("() => { LOT.poseBuildMenu(); LOT.setMuted(true); }")
+    page.wait_for_timeout(500)
+    cdp_shot(page, SHOT / "11_build_menu.png")
+    page.evaluate("() => { LOT.poseBusyDay(); LOT.setMuted(true); }")
+    page.wait_for_timeout(800)
+    cdp_shot(page, SHOT / "12_busy_day.png")
+    page.evaluate("() => { LOT.poseNightShow(); LOT.setMuted(true); }")
+    page.wait_for_timeout(900)
+    cdp_shot(page, SHOT / "13_night_rides.png")
+
+def main():
+    with sync_playwright() as p:
+        print("=== iPhone ===", flush=True)
+        browser, ctx, page = run_context(p, "iphone")
+        play_flow(page, "iPhone")
+        shots(page)
+        ctx.close(); browser.close()
+
+        print("=== desktop ===", flush=True)
+        browser, ctx, page = run_context(p, "desktop")
+        play_flow(page, "desktop")
+        ctx.close(); browser.close()
+
+    if errors:
+        print("page errors:", errors[:8], flush=True)
+        # filter benign
+        real = [e for e in errors if "Failed to load" not in e]
+        if real:
+            failures.extend(real[:4])
+    if failures:
+        print(f"\n{len(failures)} FAILED")
+        for f in failures:
+            print(" -", f)
+        sys.exit(1)
+    print("\nALL PASSED")
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
