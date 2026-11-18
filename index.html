@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#140c14">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Lights on the Lot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="loading">
+  <img class="load-logo" alt="Lights on the Lot" src="assets/ui/logo.png">
+  <div class="load-bar"><i id="loadFill"></i></div>
+  <div class="load-kicker">LOADING THE MIDWAY</div>
+</div>
+
+<div id="title" class="screen hidden">
+  <img class="title-logo" alt="Lights on the Lot" src="assets/ui/logo.png">
+  <div class="title-menu">
+    <button id="btnPlay" class="btn primary">NEW SETUP</button>
+    <button id="btnContinue" class="btn hidden">CONTINUE</button>
+  </div>
+  <div class="title-hint">Back the trailer. Fit the lot. Open the gates.</div>
+</div>
+
+<div id="hud" class="hidden">
+  <div class="topbar">
+    <div class="hcard cash">
+      <span class="lbl">CASH</span>
+      <b id="hudCash">$0</b>
+    </div>
+    <div class="hcard tickets">
+      <span class="lbl">TICKETS</span>
+      <b id="hudTickets">0</b>
+    </div>
+    <div class="hcard clock">
+      <span class="lbl" id="hudDayLbl">DAY 1</span>
+      <b id="hudClock">3:00 PM</b>
+    </div>
+    <div class="hbtns">
+      <button id="btnMute" class="icon-btn" title="Mute" aria-label="Mute">♪</button>
+      <button id="btnSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </div>
+
+  <div id="hint"></div>
+  <div id="warn" class="hidden"></div>
+  <div id="jackknife" class="hidden">JACKKNIFE — pull forward to straighten</div>
+
+  <div id="actionRow">
+    <button id="btnHook" class="btn action hidden">HOOK</button>
+    <button id="btnSetup" class="btn action primary hidden">SET UP</button>
+  </div>
+
+  <div id="touch">
+    <div id="wheelPad"><div id="wheel"><i></i></div></div>
+    <div id="pedals">
+      <button id="pRev" class="pd">R</button>
+      <button id="pDrive" class="pd">D</button>
+    </div>
+  </div>
+  <div id="keysHint">WASD / arrows to drive · R reverse · drag to pan · scroll to zoom</div>
+</div>
+
+<div id="settings" class="screen hidden">
+  <div class="panel">
+    <div class="h">SETTINGS</div>
+    <label>Sound <input type="checkbox" id="optSound" checked></label>
+    <label class="assist">Trailer assist (ghost pad guide)
+      <input type="checkbox" id="optAssist">
+    </label>
+    <p class="fine">Assist is off by default. Backing is fully manual — a jackknife will lock the trailer until you pull forward.</p>
+    <div class="keys">Touch: wheel + D / R pedals, pinch zoom, drag pan.<br>Keyboard: W/↑ drive, S/↓ or R reverse, A/D steer, E set up / hook, Esc menu.</div>
+    <button id="btnSettingsDone" class="btn">DONE</button>
+    <button id="btnToTitle" class="btn ghost">TITLE SCREEN</button>
+  </div>
+</div>
+
+<div id="ringtoss" class="screen hidden">
+  <div class="rt-hud">
+    <div class="hcard"><span class="lbl">RINGS</span><b id="rtRings">3</b></div>
+    <div class="hcard"><span class="lbl">HITS</span><b id="rtHits">0</b></div>
+    <button id="btnRtClose" class="btn">LEAVE BOOTH</button>
+  </div>
+  <div id="rtHint">Drag back and release to throw</div>
+</div>
+
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<script type="module" src="src/game.js"></script>
+</body>
+</html>
