@@ -134,7 +134,72 @@ def play_flow(page, label):
     if s3["cash"] < after["cash"] - 1:
         fail(f"{label}: save/reload lost cash {s3['cash']} vs {after['cash']}")
 
+def cell_screen(page, cx, cz):
+    return page.evaluate(
+        """([cx, cz]) => {
+          const w = LOT.cellWorld(cx, cz);
+          return LOT.worldToScreen(w.x, 0.05, w.z);
+        }""",
+        [cx, cz],
+    )
+
+def path_paint_flow(page, label):
+    page.evaluate("() => { localStorage.clear(); LOT.newGame(); LOT.setMuted(true); LOT.grant(2000, 0); }")
+    page.wait_for_timeout(200)
+    # Real UI: PATHS tab auto-selects the path tool
+    page.locator('.tab[data-tab="paths"]').click()
+    page.wait_for_timeout(150)
+    kind = page.evaluate("() => LOT.G.buildKind")
+    if kind != "path":
+        fail(f"{label}: PATHS tab should auto-select path tool, got {kind}")
+        page.locator('.card[data-kind="path"]').click()
+        page.wait_for_timeout(100)
+    before = page.evaluate("() => LOT.buildings.filter(b => b.kind==='path').length")
+    # Click-drag a run from the end of the starter path (0,2) toward (3,2) then (3,-1)
+    a = cell_screen(page, 1, 2)
+    b = cell_screen(page, 3, 2)
+    c = cell_screen(page, 3, -1)
+    print(f"  {label} screen a={a} b={b} c={c}", flush=True)
+    page.mouse.move(a["x"], a["y"])
+    page.mouse.down()
+    page.mouse.move(b["x"], b["y"], steps=12)
+    page.mouse.move(c["x"], c["y"], steps=14)
+    page.mouse.up()
+    page.wait_for_timeout(200)
+    after = page.evaluate(
+        """() => {
+          const paths = LOT.buildings.filter(b => b.kind==='path').map(b => ({cx:b.cx, cz:b.cz}));
+          return { n: paths.length, paths, cash: LOT.G.cash, kind: LOT.G.buildKind };
+        }"""
+    )
+    print(f"  {label} paint {before} -> {after}", flush=True)
+    if after["n"] < before + 4:
+        fail(f"{label}: click-drag should paint a path run, {before} -> {after['n']} {after['paths']}")
+    # erase one tile with Shift+click
+    target = after["paths"][-1]
+    sc = cell_screen(page, target["cx"], target["cz"])
+    page.keyboard.down("Shift")
+    page.mouse.click(sc["x"], sc["y"])
+    page.keyboard.up("Shift")
+    page.wait_for_timeout(150)
+    erased = page.evaluate("() => LOT.buildings.filter(b => b.kind==='path').length")
+    print(f"  {label} after erase {erased}", flush=True)
+    if erased >= after["n"]:
+        fail(f"{label}: Shift-click should erase a path tile ({after['n']} -> {erased})")
+    # guests should treat new paths as walkable
+    linked = page.evaluate(
+        """() => {
+          LOT.placeAt('corndog', 4, -1);
+          const food = LOT.buildings.find(b => b.kind==='corndog');
+          return food ? LOT.isConnected(food) : false;
+        }"""
+    )
+    print(f"  {label} food connected via painted path {linked}", flush=True)
+    if not linked:
+        fail(f"{label}: guests/paths should connect a stand reached by the painted run")
+
 def measure_perf(page, label):
+
     page.wait_for_timeout(1800)
     samples = []
     for _ in range(6):
@@ -147,15 +212,26 @@ def measure_perf(page, label):
     return avg, last
 
 def shots(page):
-    page.evaluate("() => { LOT.poseBuildMenu(); LOT.setMuted(true); }")
-    page.wait_for_timeout(700)
-    cdp_shot(page, SHOT / "14_build_menu.png")
     page.evaluate("() => { LOT.poseBusyDay(); LOT.setMuted(true); }")
     avg, last = measure_perf(page, "busy-day")
     cdp_shot(page, SHOT / "15_busy_day_wide.png")
-    page.evaluate("() => { LOT.poseCloseRides(); LOT.setMuted(true); }")
-    page.wait_for_timeout(900)
-    cdp_shot(page, SHOT / "16_ferris_loop_close.png")
+    # Painted path run, starting from a clean game
+    page.evaluate("() => { localStorage.clear(); LOT.newGame(); LOT.setMuted(true); LOT.hideTray(false); LOT.grant(3000,0); LOT.G.hour = 15; LOT.setHour(15); }")
+    page.wait_for_timeout(200)
+    page.locator('.tab[data-tab="paths"]').click()
+    page.wait_for_timeout(120)
+    a = cell_screen(page, 1, 2)
+    b = cell_screen(page, 4, 2)
+    c = cell_screen(page, 4, -2)
+    page.mouse.move(a["x"], a["y"])
+    page.mouse.down()
+    page.mouse.move(b["x"], b["y"], steps=16)
+    page.mouse.move(c["x"], c["y"], steps=16)
+    page.mouse.up()
+    page.keyboard.press("Escape")
+    page.evaluate("() => { LOT.placeAt('corndog', 5, -2); LOT.G.zoom = 15; LOT.G.pan.set(2,0,1); LOT.applyCamera(); }")
+    page.wait_for_timeout(500)
+    cdp_shot(page, SHOT / "18_painted_path.png")
     page.evaluate("() => { LOT.poseNightShow(); LOT.setMuted(true); }")
     navg, nlast = measure_perf(page, "night")
     cdp_shot(page, SHOT / "17_night_lit.png")
@@ -166,13 +242,14 @@ def main():
         print("=== Mac 1440x900 ===", flush=True)
         browser, ctx, page = run_context(p, "mac")
         play_flow(page, "1440x900")
+        path_paint_flow(page, "1440x900-paths")
         shots(page)
         ctx.close(); browser.close()
 
         print("=== Mac 2560x1440 ===", flush=True)
         browser, ctx, page = run_context(p, "wide")
         play_flow(page, "2560x1440")
-        # smoke a packed lot at the wide size for renderer.info
+        path_paint_flow(page, "2560x1440-paths")
         page.evaluate("() => { LOT.poseBusyDay(); LOT.setMuted(true); }")
         measure_perf(page, "2560-busy-day")
         ctx.close(); browser.close()

@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#140c14">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Lights on the Lot</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -25,7 +25,7 @@
     <button id="btnPlay" class="btn primary">NEW CARNIVAL</button>
     <button id="btnContinue" class="btn hidden">CONTINUE</button>
   </div>
-  <div class="title-hint">Build the midway. Collect the coins. Light up the night.</div>
+  <div class="title-hint">Paint a path, place a ride, and light up the night.</div>
 </div>
 
 <div id="hud" class="hidden">
@@ -43,7 +43,7 @@
       <b id="hudClock">2:00 PM</b>
     </div>
     <div class="hbtns">
-      <button id="btnMute" class="icon-btn" title="Mute" aria-label="Mute">♪</button>
+      <button id="btnMute" class="icon-btn" title="Mute sound" aria-label="Mute sound"><span class="ic-note">♪</span></button>
       <button id="btnSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
     </div>
   </div>
@@ -68,7 +68,7 @@
       <button class="tab" data-tab="paths">PATHS</button>
     </div>
     <div id="trayCards"></div>
-    <div id="trayKeys">1–4 tabs · [ ] cycle · Enter build · R rotate · Del sell · Esc cancel · scroll zoom · middle/right-drag or WASD pan</div>
+    <div id="trayKeys">1–4 tabs · [ ] cycle · Enter build · click-drag paths · Shift-click erase · R rotate · Del sell · Esc cancel · scroll zoom · WASD pan</div>
   </div>
 </div>
 
@@ -78,8 +78,8 @@
   <div class="panel">
     <div class="h">SETTINGS</div>
     <label>Sound <input type="checkbox" id="optSound" checked></label>
-    <p class="fine">Left-click to place or collect. Rides and stands earn more when a path reaches them.</p>
-    <div class="keys">Mouse: left-click place or select, right-click cancel, middle or right-drag pan, scroll to zoom. Hover highlights a building.<br>Keyboard: WASD or arrows pan, R rotate, Delete sell, Esc cancel, 1–4 tray tabs, [ ] cycle items, Enter to build.<br>Touch (fallback): tap to place or collect, pinch zoom, drag pan.</div>
+    <p class="fine">Left-click to place or collect. Click-drag to paint paths; Shift-click or right-click a path tile to erase. Rides and stands earn more when a path reaches them.</p>
+    <div class="keys">Mouse: left-click place or select, click-drag to paint paths, Shift-click or right-click a path to erase, right-click empty ground to cancel, middle or right-drag to pan, scroll to zoom.<br>Keyboard: WASD or arrows pan, R rotate, Delete sell, Esc cancel, 1–4 tray tabs, [ ] cycle items, Enter to build.<br>Touch (fallback): tap to place or collect, drag to paint paths, pinch zoom, two-finger or off-tool drag to pan.</div>
     <button id="btnSettingsDone" class="btn">DONE</button>
     <button id="btnToTitle" class="btn ghost">TITLE SCREEN</button>
   </div>
@@ -95,6 +95,6 @@
 </div>
 
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
-<script type="module" src="src/game.js?v=8"></script>
+<script type="module" src="src/game.js?v=9"></script>
 </body>
 </html>

@@ -196,3 +196,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0c080c;color:#f3e6d0;
   #buildTray{padding:0 56px calc(24px + env(safe-area-inset-bottom,0px))}
   #selBar{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
 }
+
+.icon-btn.muted .ic-note{position:relative;opacity:.85}
+.icon-btn.muted .ic-note::after{content:"";position:absolute;left:10%;right:10%;top:50%;border-top:2px solid #ffb0a0;transform:rotate(-28deg);pointer-events:none}
+.icon-btn[title]{position:relative}
+.pop{font-size:26px;color:#ffe08a}
+.hcard .lbl{color:#e8d4a8}
+#hint{font-size:13px;color:#fff0c4;max-width:70vw}
+.card .name{color:#fff6e4}
+.card .meta{color:#f0d9a8}
+#trayKeys{color:#e6d3a6;opacity:.95}
+.title-hint{font-size:16px;color:#ffe7b0;text-shadow:0 2px 12px #000}
+@media (min-width:1440px){
+  #hint{font-size:14px}
+  .pop{font-size:28px}
+}

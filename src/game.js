@@ -180,7 +180,7 @@ function renderBloom() {
 }
 
 const CATALOG = {
-  path:      { id:'path', name:'Path', tab:'paths', cost:10, income:0, cap:0, unlock:1, w:1, d:1, model:'path_tile', icon:'path', build:0.4 },
+  path:      { id:'path', name:'Path', tab:'paths', cost:10, income:0, cap:0, unlock:1, w:1, d:1, model:'path_tile', icon:'path', build:0 },
   ferris:    { id:'ferris', name:'Ferris Wheel', tab:'rides', cost:280, income:3.2, cap:64, unlock:1, w:3, d:3, model:'ride_ferris', icon:'ferris', build:2.4 },
   superloop: { id:'superloop', name:'Super Loop', tab:'rides', cost:480, income:5.6, cap:96, unlock:3, w:3, d:3, model:'ride_superloop', icon:'superloop', build:2.8 },
   carousel:  { id:'carousel', name:'Carousel', tab:'rides', cost:320, income:3.8, cap:72, unlock:2, w:3, d:3, model:'ride_carousel', icon:'carousel', build:2.4 },
@@ -203,51 +203,51 @@ const EXPAND_COSTS = [250, 500, 900, 1500];
 const TEVY = 'assets/models/tevy/';
 const ART = {
   path:      { procedural: 'path' },
-  ferris:    { model: 'tevy/ferris-wheel', scale: 0.28, axis: 'z', nightColor: 0xffc878, nightY: 4.8 },
-  superloop: { model: 'tevy/coaster-loop', scale: 0.46, train: 'tevy/coaster-train', nightColor: 0x66ffaa, nightY: 3.6 },
-  carousel:  { model: 'tevy/carousel', scale: 0.42, nightColor: 0xffd28a, nightY: 3.2 },
-  tilt:      { model: 'ride_tilt', scale: 1.0, nightColor: 0xff9a4a, nightY: 2.2 },
-  bumper:    { model: 'tevy/bumper-cars', scale: 0.30, nightColor: 0x7ec8ff, nightY: 2.4 },
+  ferris:    { model: 'tevy/ferris-wheel', scale: 1, axis: 'z', nightColor: 0xffc878, nightY: 6.4 },
+  superloop: { model: 'tevy/coaster-loop', scale: 1, train: 'tevy/coaster-train', nightColor: 0x66ffaa, nightY: 5.2 },
+  carousel:  { model: 'tevy/carousel', scale: 1, nightColor: 0xffd28a, nightY: 4.0 },
+  tilt:      { model: 'ride_tilt', scale: 1, nightColor: 0xff9a4a, nightY: 2.4 },
+  bumper:    { model: 'tevy/bumper-cars', scale: 1, nightColor: 0x7ec8ff, nightY: 3.4 },
   corndog:   { parts: [
-    { model: 'tevy/hot-dog-cart', scale: 1.15 },
+    { model: 'tevy/hot-dog-cart', scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.05, z: 1.05, ry: -0.25, scale: 1, sign: 'corndog' },
     { model: 'tevy/food-stool', x: -0.95, z: 0.7, ry: 0.4, scale: 1 }
   ], steam: [0, 1.7, -0.15], nightColor: 0xffc070 },
   funnelcake:{ parts: [
-    { model: 'tevy/bakers-awning-stall', scale: 1.2, ry: Math.PI },
-    { model: 'tevy/donut-glazed', x: -0.25, y: 1.12, z: 0.45, scale: 1.6 },
-    { model: 'tevy/donut-pink', x: 0.28, y: 1.12, z: 0.35, scale: 1.4 },
+    { model: 'tevy/bakers-awning-stall', scale: 1, ry: Math.PI },
+    { model: 'tevy/donut-glazed', x: -0.25, y: 1.18, z: 0.45, scale: 1 },
+    { model: 'tevy/donut-pink', x: 0.28, y: 1.18, z: 0.35, scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.05, z: 1.15, ry: 0.3, scale: 1, sign: 'funnelcake' }
   ], steam: [0, 1.8, 0.2], nightColor: 0xffd8a0 },
   cotton:    { parts: [
-    { model: 'tevy/street-food-stall-cart', scale: 1.05, ry: Math.PI },
-    { model: 'tevy/red-lantern', x: 0, y: 0.15, z: 0.15, scale: 0.85 },
+    { model: 'tevy/street-food-stall-cart', scale: 1, ry: Math.PI },
+    { model: 'tevy/red-lantern', x: 0, y: 2.15, z: 0.15, scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.0, ry: -0.2, scale: 1, sign: 'cotton' }
   ], steam: [0, 2.0, 0], nightColor: 0xff8ac8 },
   lemonade:  { parts: [
-    { model: 'tevy/bakers-awning-stall', scale: 1.15, ry: Math.PI },
-    { model: 'tevy/cooler-box', x: 0.85, z: 0.55, ry: 0.4, scale: 0.9 },
-    { model: 'tevy/soda-crate', x: -0.8, z: 0.5, scale: 0.85 },
+    { model: 'tevy/bakers-awning-stall', scale: 1, ry: Math.PI },
+    { model: 'tevy/cooler-box', x: 0.9, z: 0.55, ry: 0.4, scale: 1 },
+    { model: 'tevy/soda-crate', x: -0.85, z: 0.5, scale: 1 },
     { model: 'tevy/chalkboard-sign', x: -1.1, z: 1.15, ry: 0.2, scale: 1, sign: 'lemonade' }
   ], nightColor: 0xfff27a },
   popcorn:   { parts: [
-    { model: 'tevy/street-food-stall-cart', scale: 1.05 },
+    { model: 'tevy/street-food-stall-cart', scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.05, ry: -0.15, scale: 1, sign: 'popcorn' },
     { model: 'tevy/food-stool', x: -1.0, z: 0.55, scale: 1 }
   ], steam: [0, 2.0, 0.1], nightColor: 0xffe08a },
   turkey:    { parts: [
-    { model: 'tevy/street-food-stall-cart', scale: 1.08, ry: Math.PI * 0.5 },
-    { model: 'tevy/wooden-barrel', x: -1.15, z: 0.4, scale: 0.7 },
+    { model: 'tevy/street-food-stall-cart', scale: 1, ry: Math.PI * 0.5 },
+    { model: 'tevy/wooden-barrel', x: -1.2, z: 0.45, scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.2, z: 1.0, ry: -0.3, scale: 1, sign: 'turkey' }
   ], steam: [0, 1.9, 0], nightColor: 0xff8a50 },
   pizza:     { parts: [
-    { model: 'tevy/pizza-oven', x: -0.55, scale: 0.95 },
-    { model: 'tevy/pepperoni-pizza', x: 0.55, y: 1.05, z: 0.25, scale: 1.8 },
+    { model: 'tevy/pizza-oven', x: -0.55, scale: 1 },
+    { model: 'tevy/pepperoni-pizza', x: 0.55, y: 1.05, z: 0.25, scale: 1 },
     { model: 'tevy/pizza-peel', x: 0.85, y: 1.02, z: -0.1, ry: 0.6, scale: 1 },
     { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.15, ry: 0.25, scale: 1, sign: 'pizza' }
   ], nightColor: 0xff7040 },
   ringtoss:  { parts: [
-    { model: 'tevy/cloth-merchants-stall', scale: 1.25, ry: Math.PI },
+    { model: 'tevy/cloth-merchants-stall', scale: 1, ry: Math.PI },
     { model: 'tevy/chalkboard-sign', x: 1.15, z: 1.05, ry: -0.2, scale: 1, sign: 'ringtoss' }
   ], nightColor: 0x7ad0ff }
 };
@@ -275,6 +275,230 @@ const occup = new Map();
 const crowds = [];
 let ready = false;
 let nextId = 1;
+let painting = false, erasing = false, didPaint = false, paintCell = null;
+
+// --- Real-world scale: 1 unit = 1 meter. Prototypes are fitted once at load. ---
+const MODEL_FIT = {
+  'tevy/casual-walker': { height: 1.72 },
+  'tevy/dog-walker': { height: 1.72 },
+  'tevy/road-worker': { height: 1.76 },
+  'tevy/park-bench': { height: 0.90 },
+  'tevy/picnic-table': { height: 0.95 },
+  'tevy/hot-dog-cart': { height: 2.15 },
+  'tevy/street-food-stall-cart': { height: 2.55 },
+  'tevy/bakers-awning-stall': { height: 2.65 },
+  'tevy/street-food-counter': { height: 2.20 },
+  'tevy/pizza-oven': { height: 1.65 },
+  'tevy/cloth-merchants-stall': { height: 2.70 },
+  'tevy/newsstand-kiosk': { height: 2.40 },
+  'tevy/chalkboard-sign': { height: 1.15 },
+  'tevy/ferris-wheel': { height: 16.0 },
+  'tevy/carousel': { height: 7.2 },
+  'tevy/coaster-loop': { height: 13.0 },
+  'tevy/coaster-train': { height: 1.55 },
+  'tevy/bumper-cars': { height: 3.2 },
+  'ride_tilt': { width: 7.6, height: 2.9 },
+  'tevy/ginkgo-tree': { height: 9.5 },
+  'tevy/young-spruce': { height: 5.6 },
+  'tevy/hedge': { height: 1.35 },
+  'tevy/potted-pine': { height: 1.6 },
+  'tevy/street-lamp': { height: 5.0 },
+  'tevy/city-street-lamp': { height: 5.2 },
+  'tevy/crowd-barrier': { height: 1.10 },
+  'tevy/corner-flag': { height: 3.4 },
+  'tevy/bollard': { height: 0.90 },
+  'tevy/waste-bin': { height: 0.85 },
+  'tevy/geranium': { height: 0.45 },
+  'tevy/concrete-planter': { height: 0.55 },
+  'tevy/rope-barrier': { height: 0.95 },
+  'tevy/string-lights': { height: 0.55 },
+  'tevy/hanging-banner': { height: 1.8 },
+  'tevy/wooden-barrel': { height: 0.85 },
+  'tevy/food-stool': { height: 0.48 },
+  'tevy/cooler-box': { height: 0.85 },
+  'tevy/soda-crate': { height: 0.40 },
+  'tevy/red-lantern': { height: 0.55 },
+  'tevy/donut-glazed': { height: 0.08 },
+  'tevy/donut-pink': { height: 0.08 },
+  'tevy/donut-chocolate': { height: 0.08 },
+  'tevy/pepperoni-pizza': { width: 0.40 },
+  'tevy/pizza-peel': { height: 0.08, width: 1.1 },
+  'prop_balloons': { height: 2.4 },
+  'prop_bunting': { height: 2.8 }
+};
+
+function objectBounds(root) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    if (!o.geometry.boundingBox) return;
+    const b = o.geometry.boundingBox.clone();
+    b.applyMatrix4(o.matrixWorld);
+    box.union(b);
+  });
+  return box;
+}
+
+function fitPrototype(name) {
+  const root = assets.models[name];
+  if (!root) return;
+  const spec = MODEL_FIT[name];
+  root.scale.set(1, 1, 1);
+  root.position.set(0, 0, 0);
+  root.rotation.set(0, 0, 0);
+  let box = objectBounds(root);
+  if (box.isEmpty()) return;
+  const size = box.getSize(new THREE.Vector3());
+  let s = 1;
+  if (spec) {
+    const candidates = [];
+    if (spec.height && size.y > 0.01) candidates.push(spec.height / size.y);
+    if (spec.width) {
+      const w = Math.max(size.x, size.z);
+      if (w > 0.01) candidates.push(spec.width / w);
+    }
+    if (candidates.length) s = Math.min(...candidates);
+  }
+  if (Math.abs(s - 1) > 0.001) root.scale.setScalar(s);
+  root.updateMatrixWorld(true);
+  box = objectBounds(root);
+  if (!box.isEmpty()) {
+    root.position.x -= (box.min.x + box.max.x) * 0.5;
+    root.position.y -= box.min.y;
+    root.position.z -= (box.min.z + box.max.z) * 0.5;
+  }
+  root.updateMatrixWorld(true);
+  const final = objectBounds(root);
+  const fs = final.isEmpty() ? new THREE.Vector3() : final.getSize(new THREE.Vector3());
+  root.userData.fit = { scale: s, height: fs.y, width: Math.max(fs.x, fs.z) };
+}
+
+function fitAllModels() {
+  for (const name of Object.keys(assets.models)) fitPrototype(name);
+}
+
+function pathMask(cx, cz) {
+  let m = 0;
+  if (isPathCell(cx, cz - 1)) m |= 1;
+  if (isPathCell(cx + 1, cz)) m |= 2;
+  if (isPathCell(cx, cz + 1)) m |= 4;
+  if (isPathCell(cx - 1, cz)) m |= 8;
+  return m;
+}
+
+function buildPathArt(mask = 0) {
+  const g = new THREE.Group();
+  g.name = 'pathArt';
+  const H = 0.14, top = 0.17, y = top - H / 2;
+  const half = TILE * 0.5;
+  const inset = 0.16;
+  let x0 = -half + inset, x1 = half - inset, z0 = -half + inset, z1 = half - inset;
+  if (mask & 8) x0 = -half;
+  if (mask & 2) x1 = half;
+  if (mask & 1) z0 = -half;
+  if (mask & 4) z1 = half;
+  const w = Math.max(0.2, x1 - x0), d = Math.max(0.2, z1 - z0);
+  mesh(new THREE.BoxGeometry(w, H, d), M.path, { x: (x0 + x1) / 2, y, z: (z0 + z1) / 2, parent: g, cast: false, recv: true });
+  const ch = 0.055, cw = 0.06, cy = top + ch * 0.35;
+  if (!(mask & 1)) mesh(new THREE.BoxGeometry(w + 0.02, ch, cw), M.pathCurb, { x: (x0 + x1) / 2, y: cy, z: z0, parent: g, cast: false, recv: true });
+  if (!(mask & 4)) mesh(new THREE.BoxGeometry(w + 0.02, ch, cw), M.pathCurb, { x: (x0 + x1) / 2, y: cy, z: z1, parent: g, cast: false, recv: true });
+  if (!(mask & 8)) mesh(new THREE.BoxGeometry(cw, ch, d + 0.02), M.pathCurb, { x: x0, y: cy, z: (z0 + z1) / 2, parent: g, cast: false, recv: true });
+  if (!(mask & 2)) mesh(new THREE.BoxGeometry(cw, ch, d + 0.02), M.pathCurb, { x: x1, y: cy, z: (z0 + z1) / 2, parent: g, cast: false, recv: true });
+  return g;
+}
+
+function restylePath(b) {
+  if (!b || b.kind !== 'path' || !b.group) return;
+  const old = b.group.getObjectByName('pathArt');
+  if (old) b.group.remove(old);
+  // also remove leftover art from the original buildArt (first child meshes without the name)
+  for (const ch of [...b.group.children]) {
+    if (ch.userData && (ch.userData.coinOf || ch.userData.keepLit)) continue;
+    if (ch.name === 'pathArt') continue;
+    // blob shadows / coins stay; drop old procedural slabs
+    if (ch.isMesh && ch.geometry && ch.geometry.type === 'BoxGeometry') b.group.remove(ch);
+    if (ch.isGroup && ch.name !== 'pathArt' && !ch.userData.coinOf) {
+      let onlyPath = true;
+      ch.traverse((o) => { if (o.userData && o.userData.coinOf) onlyPath = false; });
+      if (onlyPath && ch !== b.coin) b.group.remove(ch);
+    }
+  }
+  const art = buildPathArt(pathMask(b.cx, b.cz));
+  b.group.add(art);
+  b.model = art;
+}
+
+function refreshPathsAround(cx, cz) {
+  for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const b = occup.get(keyOf(cx + dx, cz + dz));
+    if (b && b.kind === 'path') restylePath(b);
+  }
+  onPathNetworkChanged();
+}
+
+function onPathNetworkChanged() {
+  for (const g of crowds) {
+    if (g.state === 'walk') { g.path = []; g.targetId = null; }
+  }
+}
+
+function erasePathAt(cx, cz) {
+  const b = occup.get(keyOf(cx, cz));
+  if (!b || b.kind !== 'path') return false;
+  const refund = Math.floor((CATALOG.path.cost || 10) * 0.5);
+  G.cash += refund;
+  removeBuilding(b);
+  refreshPathsAround(cx, cz);
+  updateHUD(); populateTray(); save();
+  audio.erase && audio.erase();
+  setHint(refund ? 'Path removed. +$' + refund + '.' : 'Path removed.');
+  return true;
+}
+
+function paintPathAt(cx, cz) {
+  if (!owned(cx, cz)) { setHint('Need a clear tile on your lot.'); return false; }
+  const hit = occup.get(keyOf(cx, cz));
+  if (hit) {
+    if (hit.kind === 'path') return false;
+    setHint('Need a clear tile on your lot.');
+    return false;
+  }
+  if (G.cash < CATALOG.path.cost) { setHint('Not enough coins.'); return false; }
+  const b = placeBuilding('path', cx, cz, 0, { buildT: 0 });
+  if (!b) return false;
+  G.cash -= CATALOG.path.cost;
+  grantXP(CATALOG.path.cost * 0.15);
+  restylePath(b);
+  refreshPathsAround(cx, cz);
+  audio.tick && audio.tick();
+  updateHUD(); populateTray();
+  return true;
+}
+
+function cellsBetween(a, b) {
+  const out = [];
+  let x = a.cx, z = a.cz;
+  const dx = Math.abs(b.cx - a.cx), dz = Math.abs(b.cz - a.cz);
+  const sx = Math.sign(b.cx - a.cx) || 0, sz = Math.sign(b.cz - a.cz) || 0;
+  let err = dx - dz;
+  for (let i = 0; i < 64; i++) {
+    out.push({ cx: x, cz: z });
+    if (x === b.cx && z === b.cz) break;
+    const e2 = 2 * err;
+    if (e2 > -dz) { err -= dz; x += sx; }
+    if (e2 < dx) { err += dx; z += sz; }
+  }
+  return out;
+}
+
+function worldToScreen(x, y, z) {
+  const v = new THREE.Vector3(x, y, z).project(camera);
+  return { x: (v.x * 0.5 + 0.5) * window.innerWidth, y: (-v.y * 0.5 + 0.5) * window.innerHeight };
+}
+
+
 
 function loadTex(path, { srgb = true, repeat = 1, wrap = true } = {}) {
   const t = loader.load(path);
@@ -443,15 +667,21 @@ function lightPool(map, w, d, parent, x, z, y = 0.04) {
 
 function buildMaterials() {
   M.asphalt = pbr('asphalt_lines', { repeat: 6, roughness: 0.95, normalScale: 1.15, color: 0xffffff });
-  M.midway = pbr('midway', { repeat: 2, roughness: 0.92, normalScale: 1.2, color: 0xffffff });
+  M.asphalt.polygonOffset = true; M.asphalt.polygonOffsetFactor = 1; M.asphalt.polygonOffsetUnits = 1;
+  M.midway = pbr('midway', { repeat: 1, roughness: 0.88, normalScale: 1.2, color: 0xe8c078 });
+  M.path = pbr('midway', { repeat: 1, roughness: 0.86, normalScale: 1.15, color: 0xf0c56a });
+  M.path.envMapIntensity = 0.45;
+  M.pathCurb = pbr('wood', { repeat: 1, roughness: 0.78, normalScale: 0.9, color: 0xc4a068 });
   M.grass = pbr('grass', { repeat: 12, roughness: 0.95, normalScale: 1.4, color: 0xe8f0d8 });
   M.concrete = pbr('concrete', { repeat: 3, roughness: 0.9, normalScale: 0.8 });
   M.wood = pbr('wood', { repeat: 2, roughness: 0.85, normalScale: 1.0 });
   M.metal = pbr('metal', { repeat: 2, roughness: 0.35, metalness: 0.85, env: 1.2, normalScale: 0.5 });
   M.gold = new THREE.MeshStandardMaterial({ color: 0xd4b15a, roughness: 0.32, metalness: 0.9, envMapIntensity: 1.3 });
   M.shadowBlob = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false });
-  M.ghostOk = new THREE.MeshStandardMaterial({ color: 0x44cc66, transparent: true, opacity: 0.38, depthWrite: false, roughness: 0.6 });
-  M.ghostNo = new THREE.MeshStandardMaterial({ color: 0xcc3344, transparent: true, opacity: 0.4, depthWrite: false, roughness: 0.6 });
+  M.ghostOk = new THREE.MeshBasicMaterial({ color: 0x3dff6a, transparent: true, opacity: 0.52, depthWrite: false });
+  M.ghostNo = new THREE.MeshBasicMaterial({ color: 0xff3a3a, transparent: true, opacity: 0.55, depthWrite: false });
+  M.cellOk = new THREE.MeshBasicMaterial({ color: 0x2ee66a, transparent: true, opacity: 0.42, depthWrite: false });
+  M.cellNo = new THREE.MeshBasicMaterial({ color: 0xff2d2d, transparent: true, opacity: 0.45, depthWrite: false });
   M.sign = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.0, envMapIntensity: 0.35 });
 }
 
@@ -806,23 +1036,29 @@ function plantDecor() {
   world.trees = [];
   resetInstPool('trees');
   const spots = [
-    [-24, -10, 0.85, 0.2], [-28, 2, 0.7, 1.1], [-25, 16, 0.8, 0.4],
-    [24, -12, 0.9, 2.0], [28, 2, 0.72, 0.6], [25, 16, 0.82, 1.4],
-    [-18, -26, 0.95, 0.3], [0, -28, 1.05, 0.9], [18, -26, 0.78, 2.2],
-    [-30, 20, 0.7, 0.1], [30, 20, 0.88, 1.7], [10, 28, 0.75, 0.5], [-10, 28, 0.8, 2.4],
-    [-26, -16, 0.8, 0.6], [26, -16, 0.88, 1.3], [-34, -4, 0.65, 0.9], [34, 10, 0.7, 0.2],
-    [-16, 30, 0.9, 1.8], [16, 30, 0.76, 0.4], [6, -32, 0.92, 1.0], [-6, -32, 0.7, 0.3],
-    [-22, -20, 0.55, 0.0, 'tevy/young-spruce'], [22, -20, 0.6, 0.8, 'tevy/young-spruce'],
-    [-32, 8, 0.5, 1.2, 'tevy/young-spruce'], [32, -6, 0.55, 0.4, 'tevy/young-spruce'],
-    [-34, 24, 0.6, 2.1, 'tevy/young-spruce'], [34, 16, 0.58, 0.7, 'tevy/young-spruce']
+    // Just outside a starting / mid-size lot so the grove reads at normal zoom
+    [-18, -10, 0.92, 0.2], [18, -10, 0.88, 2.0], [-18, 10, 0.85, 0.4], [18, 10, 0.9, 1.4],
+    [-19, 0, 1.0, 1.1], [19, 0, 0.95, 0.6], [0, -19, 1.05, 0.9], [10, -18, 0.8, 2.2],
+    [-10, -18, 0.86, 0.3], [0, 19, 0.9, 0.5], [-11, 18, 0.82, 2.4], [11, 18, 0.78, 1.7],
+    [-20, -16, 0.75, 0.6], [20, -16, 0.8, 1.3], [-20, 16, 0.7, 0.1], [20, 16, 0.77, 0.2],
+    [-17, -17, 0.7, 0.0, 'tevy/young-spruce'], [17, -17, 0.75, 0.8, 'tevy/young-spruce'],
+    [-19, 6, 0.65, 1.2, 'tevy/young-spruce'], [19, -6, 0.68, 0.4, 'tevy/young-spruce'],
+    [-16, 19, 0.72, 2.1, 'tevy/young-spruce'], [16, 19, 0.7, 0.7, 'tevy/young-spruce']
   ];
   for (const rec of spots) {
     const [x, z, sc, ry] = rec;
     const name = rec[4] || 'tevy/ginkgo-tree';
-    addInstance('trees', name, x, z, sc, ry, 0, true, 48);
+    // Clone (not instanced): foliage textures stay correct, and fitted scale reads as real trees.
+    const g = cloneModel(name, sc, { shareMaterials: true, shadows: true });
+    if (!g) continue;
+    g.position.set(x, 0, z);
+    g.rotation.y = ry;
+    addBlobShadow(g, 1.8 * sc, 1.8 * sc, 0.32);
+    scene.add(g);
+    world.trees.push(g);
   }
-  for (const [x, z, ry] of [[-20, 0, Math.PI / 2], [20, 0, Math.PI / 2], [0, -20, 0], [-20, 12, Math.PI / 2], [20, -12, Math.PI / 2], [12, -20, 0]]) {
-    addInstance('trees', 'tevy/hedge', x, z, 1.1, ry, 0, false, 16);
+  for (const [x, z, ry] of [[-17, 3, Math.PI / 2], [17, -3, Math.PI / 2], [4, -17, 0], [-17, 12, Math.PI / 2], [17, 12, Math.PI / 2], [12, -17, 0]]) {
+    addInstance('trees', 'tevy/hedge', x, z, 1.0, ry, 0, false, 16);
   }
 }
 
@@ -843,16 +1079,7 @@ function addSignBoard(parent, key, off = { x: 0, y: 0.62, z: 0.26 }) {
 function buildArt(kind) {
   const spec = ART[kind];
   const cat = CATALOG[kind];
-  if (!spec || spec.procedural === 'path') {
-    const g = new THREE.Group();
-    const tile = mesh(new THREE.BoxGeometry(TILE * 0.96, 0.07, TILE * 0.96), M.midway, {
-      y: 0.04, parent: g, cast: false, recv: true
-    });
-    mesh(new THREE.BoxGeometry(TILE * 0.98, 0.03, TILE * 0.98), M.concrete, {
-      y: 0.015, parent: g, cast: false, recv: true
-    });
-    return g;
-  }
+  if (!spec || spec.procedural === 'path') return buildPathArt(0);
   const root = new THREE.Group();
   const parts = spec.parts;
   if (parts) {
@@ -988,7 +1215,7 @@ function cloneModel(name, scale = 1, opts = {}) {
       }
     }
   });
-  if (scale && scale !== 1) c.scale.setScalar(scale);
+  if (scale && scale !== 1) c.scale.multiplyScalar(scale);
   return c;
 }
 function footprintCenter(kind, cx, cz, rot) {
@@ -1072,7 +1299,6 @@ function hookParts(b, root, opts = {}) {
       // host is already scaled by ART.superloop.scale; radius is in unscaled host space.
       // Rotate so the car's long axis is tangent to the loop; scale up so it reads on a Mac screen.
       car.rotation.y = Math.PI / 2;
-      car.scale.setScalar(2.2);
       car.position.set(0, -radius, 0);
       car.userData.loopRadius = radius;
       arm.add(car);
@@ -1136,7 +1362,7 @@ function makeCoinSprite(b) {
   spr.visible = false;
   b.group.add(spr);
   const cat = CATALOG[b.kind];
-  spr.position.set(0, (cat.w >= 3 ? 4.6 : 2.8), 0);
+  spr.position.set(0, (cat.w >= 3 ? 6.2 : 3.2), 0);
   b.coin = spr;
   return spr;
 }
@@ -1171,6 +1397,7 @@ function placeBuilding(kind, cx, cz, rot = 0, opts = {}) {
   }
   buildings.push(b);
   syncOccup(b, true);
+  if (kind === 'path') { restylePath(b); refreshPathsAround(cx, cz); }
   if (b.buildT > 0) group.scale.setScalar(0.08);
   return b;
 }
@@ -1280,7 +1507,16 @@ function collectBuilding(b, silent) {
 }
 
 function spawnCashPop(b, amt) {
-  const p = b.group.position.clone(); p.y = 2.2;
+  if (b && b.group) {
+    b.group.userData.flash = 0.28;
+    b.group.traverse((o) => {
+      if (o.isMesh && o.material && o.material.emissive) {
+        o.userData._em = o.material.emissive.clone();
+        o.material.emissive.setRGB(0.45, 0.32, 0.05);
+      }
+    });
+  }
+  const p = b.group.position.clone(); p.y = 2.6;
   p.project(camera);
   const el = document.createElement('div');
   el.className = 'pop';
@@ -1382,12 +1618,11 @@ function boardRide(guest, b) {
   guest.wait = 7 + Math.random() * 5;
   seat.userData.taken = guest;
   seat.attach(guest.group);
-  let sitY = 0.02, sitScale = 0.42, sitYaw = Math.PI;
-  if (b.kind === 'ferris') { sitY = -1.85; sitScale = 0.42; }
-  if (b.kind === 'carousel') { sitY = 0.15; sitScale = 0.55; }
-  if (b.kind === 'superloop') { sitY = 0.38; sitScale = 0.82 / 2.2; sitYaw = 0; }
-  if (b.kind === 'tilt' || b.kind === 'bumper') { sitY = 0.22; sitScale = 0.55; }
-  // prefer a child named seat
+  let sitY = 0.02, sitYaw = Math.PI;
+  if (b.kind === 'ferris') { sitY = -2.2; }
+  if (b.kind === 'carousel') { sitY = 0.18; }
+  if (b.kind === 'superloop') { sitY = 0.42; sitYaw = 0; }
+  if (b.kind === 'tilt' || b.kind === 'bumper') { sitY = 0.28; }
   let seatMesh = null;
   seat.traverse((o) => { if (/_seat$/.test(o.name) && !seatMesh) seatMesh = o; });
   if (seatMesh) {
@@ -1398,6 +1633,12 @@ function boardRide(guest, b) {
     guest.group.position.set(0, sitY, 0);
   }
   guest.group.rotation.set(0, sitYaw, 0);
+  seat.updateWorldMatrix(true, false);
+  const ps = new THREE.Vector3();
+  seat.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), ps);
+  const bodyH = guest.bodyH || 1.72;
+  const seatedWorld = guest.isKid ? 0.85 : 1.18;
+  const sitScale = seatedWorld / Math.max(0.05, (ps.y || 1) * bodyH);
   guest.group.scale.setScalar(sitScale);
   if (guest.mixer) guest.mixer.stopAllAction();
   guest.act = null;
@@ -1425,7 +1666,10 @@ function spawnGuest() {
   const weighted = Math.random();
   const name = weighted < 0.55 ? names[0] : (weighted < 0.85 ? names[1] : names[2]);
   const g = new THREE.Group();
-  const model = cloneModel(name, 1, { shareMaterials: name === 'tevy/casual-walker' ? false : true, shadows: false });
+  const isKid = name === 'tevy/casual-walker' && Math.random() < 0.22;
+  const bodyH = isKid ? (1.12 + Math.random() * 0.16) : 1.72;
+  const protoH = (assets.models[name] && assets.models[name].userData.fit && assets.models[name].userData.fit.height) || 1.72;
+  const model = cloneModel(name, bodyH / Math.max(0.2, protoH), { shareMaterials: name === 'tevy/casual-walker' ? false : true, shadows: true });
   let mixer = null, actions = {}, hand = null;
   if (model) {
     // casual variety: tint clothing
@@ -1450,7 +1694,7 @@ function spawnGuest() {
     const spr = isoSprite(loadSpr('person_b_0.png'), 1.2, { parent: g, order: 7, alphaTest: 0.2 });
     g.userData.sprite = spr;
   }
-  addBlobShadow(g, 0.28, 0.28, 0.25);
+  addBlobShadow(g, isKid ? 0.22 : 0.32, isKid ? 0.22 : 0.32, 0.3);
   scene.add(g);
   const ent = entranceCell();
   const w = cellWorld(ent.cx, ent.cz);
@@ -1460,7 +1704,8 @@ function spawnGuest() {
     z: w.z + 0.6 + Math.random() * 0.4,
     heading: Math.PI, speed: 1.15 + Math.random() * 0.5,
     state: 'walk', wait: 0, path: [], targetId: null, food: null,
-    walkT: Math.random(), walkFrame: 0, act: null, ride: null, seat: null
+    walkT: Math.random(), walkFrame: 0, act: null, ride: null, seat: null,
+    isKid, bodyH
   };
   g.position.set(guest.x, 0, guest.z);
   playGuest(guest, 'walk');
@@ -1720,12 +1965,26 @@ function ensureGhost(kind) {
   const cat = CATALOG[kind];
   if (!cat || cat.special) return;
   const g = new THREE.Group();
-  const model = buildArt(kind);
-  if (model) {
-    model.traverse((o) => { if (o.isMesh) { o.material = M.ghostOk.clone(); o.castShadow = false; } });
-    g.add(model);
+  const cw = (cat.w || 1) * TILE * 0.96, cd = (cat.d || 1) * TILE * 0.96;
+  const pad = mesh(new THREE.PlaneGeometry(cw, cd), M.cellOk.clone(), { y: 0.12, rx: -Math.PI / 2, parent: g, cast: false, recv: false });
+  pad.name = 'cellPad';
+  pad.renderOrder = 8;
+  if (kind === 'path') {
+    const slab = mesh(new THREE.BoxGeometry(TILE * 0.84, 0.16, TILE * 0.84), M.ghostOk.clone(), { y: 0.2, parent: g, cast: false, recv: false });
+    slab.name = 'ghostSlab';
   } else {
-    mesh(new THREE.BoxGeometry(cat.w * TILE * 0.9, 0.4, cat.d * TILE * 0.9), M.ghostOk, { y: 0.2, parent: g, cast: false });
+    const model = buildArt(kind);
+    if (model) {
+      model.traverse((o) => {
+        if (o.isMesh) {
+          o.material = M.ghostOk.clone();
+          o.material.opacity = 0.4;
+          o.castShadow = false;
+          o.receiveShadow = false;
+        }
+      });
+      g.add(model);
+    }
   }
   scene.add(g);
   ghost.group = g; ghost.kind = kind; ghost.rot = 0;
@@ -1733,15 +1992,18 @@ function ensureGhost(kind) {
 function tintGhost(ok) {
   if (!ghost.group) return;
   ghost.group.traverse((o) => {
-    if (o.isMesh && o.material && o.material.color) o.material.color.copy(ok ? M.ghostOk.color : M.ghostNo.color);
+    if (!o.isMesh || !o.material) return;
+    if (o.name === 'cellPad') o.material = (ok ? M.cellOk : M.cellNo).clone();
+    else if (o.material.color) o.material.color.copy(ok ? M.ghostOk.color : M.ghostNo.color);
   });
 }
 function updateGhostAt(cx, cz) {
   if (!ghost.group || !ghost.kind) return;
   ghost.cx = cx; ghost.cz = cz;
-  ghost.ok = canPlace(ghost.kind, cx, cz, ghost.rot, G.moving);
+  const eraseHover = erasing || (painting && erasing);
+  ghost.ok = eraseHover ? isPathCell(cx, cz) : canPlace(ghost.kind, cx, cz, ghost.rot, G.moving);
   const mid = footprintCenter(ghost.kind, cx, cz, ghost.rot);
-  ghost.group.position.set(mid.x, 0.04, mid.z);
+  ghost.group.position.set(mid.x, 0.02, mid.z);
   ghost.group.rotation.y = (ghost.rot % 4) * Math.PI / 2;
   tintGhost(ghost.ok);
 }
@@ -1772,7 +2034,8 @@ function populateTray() {
     const price = id === 'expand' ? (G.lotExtent >= 11 ? 'MAX' : '$' + cost) : '$' + cost;
     const label = id === 'expand' ? 'Expand Lot' : cat.name;
     card.innerHTML = `<img alt="" src="assets/ui/icons/${cat.icon}.png"><div class="name">${label}</div><div class="meta"><span>${price}</span>${inc}</div>`;
-    card.addEventListener('click', (e) => { e.stopPropagation(); onPickCard(id); });
+    card.title = locked ? (label + ' unlocks at level ' + cat.unlock) : (id === 'path' ? 'Path — click-drag to paint, Shift-click to erase' : (label + ' — $' + cost + (cat.income ? (', +' + cat.income.toFixed(1) + '/s') : '')));
+    card.addEventListener('click', (e) => { e.stopPropagation(); audio.click && audio.click(); onPickCard(id); });
     box.appendChild(card);
   }
 }
@@ -1792,7 +2055,9 @@ function onPickCard(id) {
   ghost.rot = 0;
   if (world.grid) world.grid.visible = true;
   populateTray();
-  setHint('Left-click to place ' + cat.name + '. R rotates, right-click or Esc cancels.');
+  setHint(id === 'path'
+    ? 'Click-drag to paint a path. Shift-click or right-click a tile to erase. Esc cancels.'
+    : 'Left-click to place ' + cat.name + '. R rotates, right-click or Esc cancels.');
 }
 function cancelBuild() {
   if (G.moving) G.moving.group.visible = true;
@@ -1895,9 +2160,9 @@ function newGame() {
   cancelBuild();
   rebuildLotShell();
   for (let i = 0; i < 4; i++) placeBuilding('path', 0, G.lotExtent - i, 0, { buildT: 0, force: true });
-  hideTitle(); showHUD();
+  hideTitle(); showHUD(); hideTray(false);
   setAtmosphere(G.hour);
-  setHint('Lay a path, then place a ride. Tap coins to collect.');
+  setHint('Paint a path from the gate, then drop a ride. Click coins to collect.');
   updateHUD(); populateTray(); applyCamera(); save();
   acEnsure(); audio.want = true;
 }
@@ -1908,7 +2173,7 @@ function continueGame() {
   G.mode = 'play';
   applySave(s);
   G.zoom = DEFAULT_ZOOM; G.pan.set(0, 0, 2);
-  hideTitle(); showHUD();
+  hideTitle(); showHUD(); hideTray(false);
   setHint('Welcome back to the midway.');
   applyCamera(); save();
   acEnsure(); audio.want = true;
@@ -1975,6 +2240,7 @@ function handleTap(x, y) {
     const gnd = groundAt(x, y);
     if (!gnd) return;
     const c = worldToCell(gnd.x, gnd.z);
+    if (G.buildKind === 'path' && !G.moving) { paintPathAt(c.cx, c.cz); updateGhostAt(c.cx, c.cz); return; }
     tryPlaceAt(c.cx, c.cz);
     return;
   }
@@ -2003,13 +2269,13 @@ function ensureHoverRing() {
   geo.rotateX(-Math.PI / 2);
   const hm = new THREE.MeshBasicMaterial({ color: 0xf2c14e, transparent: true, opacity: 0.7, depthWrite: false });
   hoverRing = new THREE.Mesh(geo, hm);
-  hoverRing.position.y = 0.05;
+  hoverRing.position.y = 0.20;
   hoverRing.visible = false;
   hoverRing.renderOrder = 6;
   scene.add(hoverRing);
   const sm = new THREE.MeshBasicMaterial({ color: 0xffe7b0, transparent: true, opacity: 0.9, depthWrite: false });
   selectRing = new THREE.Mesh(geo.clone(), sm);
-  selectRing.position.y = 0.055;
+  selectRing.position.y = 0.22;
   selectRing.visible = false;
   selectRing.renderOrder = 6;
   scene.add(selectRing);
@@ -2040,12 +2306,35 @@ function wantsPan(e) {
   if (e.pointerType === 'touch' || e.pointerType === 'pen') return true;
   return e.button === 1 || e.button === 2;
 }
+function cellFromEvent(e) {
+  const gnd = groundAt(e.clientX, e.clientY);
+  if (!gnd) return null;
+  return worldToCell(gnd.x, gnd.z);
+}
 function onPointerDown(e) {
   if (G.mode === 'ringtoss') return onRtDown(e);
   if (e.target !== canvas) return;
   if (e.button === 1 || e.button === 2) e.preventDefault();
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, button: e.button, type: e.pointerType });
-  const panBtn = wantsPan(e);
+  didPaint = false; painting = false; erasing = false; paintCell = null;
+  const c0 = cellFromEvent(e);
+  if (G.mode === 'play' && G.buildKind === 'path' && !G.moving && (e.button === 0 || e.button === 2)) {
+    const wantErase = e.button === 2 || e.shiftKey;
+    if (wantErase && c0 && isPathCell(c0.cx, c0.cz)) {
+      painting = true; erasing = true; didPaint = true;
+      erasePathAt(c0.cx, c0.cz);
+      paintCell = c0;
+      updateGhostAt(c0.cx, c0.cz);
+    } else if (e.button === 0 && !wantErase) {
+      painting = true; erasing = false;
+      if (c0) {
+        if (paintPathAt(c0.cx, c0.cz)) didPaint = true;
+        paintCell = c0;
+        updateGhostAt(c0.cx, c0.cz);
+      }
+    }
+  }
+  const panBtn = wantsPan(e) && !painting;
   if (pointers.size === 1) {
     panning = false; pinched = false;
     panStart = { x: e.clientX, y: e.clientY, panx: G.pan.x, panz: G.pan.z, panBtn };
@@ -2078,6 +2367,19 @@ function onPointerMove(e) {
     }
     return;
   }
+  if (painting && G.buildKind === 'path' && pointers.size === 1) {
+    const c = cellFromEvent(e);
+    if (c && paintCell && (c.cx !== paintCell.cx || c.cz !== paintCell.cz)) {
+      const run = cellsBetween(paintCell, c);
+      for (const cell of run) {
+        if (erasing) { if (erasePathAt(cell.cx, cell.cz)) didPaint = true; }
+        else if (paintPathAt(cell.cx, cell.cz)) didPaint = true;
+      }
+      paintCell = c;
+    }
+    if (c) updateGhostAt(c.cx, c.cz);
+    return;
+  }
   if (panStart && pointers.size === 1) {
     const dx = e.clientX - panStart.x, dy = e.clientY - panStart.y;
     const allowPan = panStart.panBtn;
@@ -2104,10 +2406,15 @@ function onPointerUp(e) {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinched = false;
   if (pointers.size === 0) {
-    if (had && panStart && !panning && !pinched) {
+    if (had && panStart && !panning && !pinched && !didPaint) {
       if (e.button === 2) { cancelBuild(); selectBuilding(null); setHint('Cancelled.'); }
       else if (e.button === 0 || (had.type && had.type !== 'mouse')) handleTap(e.clientX, e.clientY);
     }
+    if (didPaint && G.buildKind === 'path') {
+      setHint(erasing ? 'Path removed. Keep going, or Esc to stop.' : 'Path laid. Keep dragging to extend, or pick a ride.');
+      save();
+    }
+    painting = false; erasing = false; didPaint = false; paintCell = null;
     panning = false; panStart = null;
     updateCanvasCursor();
   }
@@ -2272,7 +2579,9 @@ function setMuted(m) {
   G.muted = m;
   if (audio.master) audio.master.gain.setTargetAtTime(m ? 0 : 0.9, audio.ctx.currentTime, 0.05);
   $('btnMute').classList.toggle('muted', m);
-  $('btnMute').textContent = m ? '\u00d7' : '\u266a';
+  $('btnMute').innerHTML = '<span class="ic-note">♪</span>';
+  $('btnMute').title = m ? 'Unmute sound' : 'Mute sound';
+  $('btnMute').setAttribute('aria-label', m ? 'Unmute sound' : 'Mute sound');
   $('optSound').checked = !m;
 }
 function mf(m) { return 440 * Math.pow(2, (m - 69) / 12); }
@@ -2307,7 +2616,10 @@ function tickMusic() {
   }
 }
 audio.clank = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('square', 180, t, 0.08, 0.08, audio.sfx); tone('triangle', 90, t, 0.12, 0.1, audio.sfx); };
-audio.cash = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 880, t, 0.08, 0.06, audio.sfx); tone('sine', 1320, t + 0.06, 0.1, 0.05, audio.sfx); };
+audio.tick = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 720, t, 0.04, 0.045, audio.sfx); tone('triangle', 1440, t, 0.03, 0.02, audio.sfx); };
+audio.erase = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 240, t, 0.05, 0.04, audio.sfx); tone('triangle', 160, t, 0.07, 0.03, audio.sfx); };
+audio.click = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 620, t, 0.03, 0.03, audio.sfx); };
+audio.cash = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 784, t, 0.09, 0.07, audio.sfx); tone('sine', 1176, t + 0.05, 0.1, 0.06, audio.sfx); tone('sine', 1568, t + 0.11, 0.14, 0.05, audio.sfx); };
 audio.chime = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; [72, 76, 79].forEach((m, i) => tone('sine', mf(m), t + i * 0.08, 0.25, 0.05, audio.sfx)); };
 audio.throw = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('triangle', 420, t, 0.08, 0.05, audio.sfx); };
 audio.hit = () => { if (!acEnsure() || G.muted) return; const t = audio.ctx.currentTime; tone('sine', 980, t, 0.12, 0.07, audio.sfx); tone('sine', 1470, t + 0.06, 0.12, 0.05, audio.sfx); };
@@ -2351,11 +2663,7 @@ function bindUI() {
   });
   $('btnPlayBooth').addEventListener('click', () => { if (G.selected) openRingToss(G.selected); });
   for (const tab of document.querySelectorAll('.tab')) {
-    tab.addEventListener('click', () => {
-      G.tab = tab.dataset.tab;
-      document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t === tab));
-      populateTray();
-    });
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
   }
   canvas.addEventListener('pointerdown', onPointerDown);
   window.addEventListener('pointermove', onPointerMove);
@@ -2408,6 +2716,7 @@ function switchTab(id) {
   G.tab = id;
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === id));
   populateTray();
+  if (id === 'paths' && G.mode === 'play') onPickCard('path');
 }
 
 
@@ -2439,7 +2748,23 @@ function frame() {
       setAtmosphere(G.hour);
       animateRides(dt, clock.elapsedTime);
     }
-    if (G.mode === 'play') updateHUD();
+    if (G.mode === 'play') {
+    updateHUD();
+    for (const b of buildings) {
+      if (b.group && b.group.userData.flash) {
+        b.group.userData.flash -= dt;
+        if (b.group.userData.flash <= 0) {
+          b.group.userData.flash = 0;
+          b.group.traverse((o) => {
+            if (o.userData && o.userData._em && o.material && o.material.emissive) {
+              o.material.emissive.copy(o.userData._em);
+              delete o.userData._em;
+            }
+          });
+        }
+      }
+    }
+  }
   }
   if (G.mode === 'ringtoss') { stepRingToss(dt); setAtmosphere(G.hour); animateRides(dt, clock.elapsedTime); }
   tickMusic();
@@ -2605,7 +2930,8 @@ function exposeDebug() {
     grant(cash, xp) { if (cash) G.cash += cash; if (xp) grantXP(xp); updateHUD(); populateTray(); save(); },
     tickIncome: stepIncome, setHour(h) { G.hour = h; setAtmosphere(h); },
     doExpand, populateTray, canPlace, isConnected, cancelBuild, selectBuilding,
-    openRingToss, closeRingToss, worldToCell, cellWorld,
+    openRingToss, closeRingToss, worldToCell, cellWorld, worldToScreen, paintPathAt, erasePathAt, pathMask,
+    modelFits() { const o = {}; for (const [k, v] of Object.entries(assets.models)) o[k] = v && v.userData && v.userData.fit; return o; },
     pick(kind) { onPickCard(kind); },
     placeAt(kind, cx, cz, rot = 0) {
       const cat = CATALOG[kind];
@@ -2670,6 +2996,7 @@ function boot() {
   manager.onLoad = () => {
     if (ready) return;
     optimizeAllModels();
+    fitAllModels();
     buildMaterials();
     buildSkyAndLights();
     rebuildLotShell();
